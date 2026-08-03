@@ -38,6 +38,24 @@ The two are versioned separately so a routine app update does not re-download th
 Your settings, logbook and crash reports live in the install folder and are never overwritten by
 an update.
 
+## Windows will warn you the first time
+
+Crew Chief is **not code-signed**, so Windows SmartScreen will show a blue
+*"Windows protected your PC"* box the first time you run it.
+
+That is expected. It means the file has no purchased signing certificate — not that anything is
+wrong with it. To continue: click **More info**, then **Run anyway**.
+
+If you'd rather verify the download first, each release lists a **SHA-256** checksum in its notes.
+Compare it before running:
+
+```powershell
+Get-FileHash .\CrewChief-v50.0.zip -Algorithm SHA256
+```
+
+Crew Chief also checks this hash itself before applying any automatic update, and refuses to
+install a download that doesn't match.
+
 ## Requirements
 
 - Windows 10 or 11
