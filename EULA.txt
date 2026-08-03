@@ -1,0 +1,72 @@
+NULLSET FORGE'S DCS CREW CHIEF
+END USER LICENCE AGREEMENT
+
+Copyright (c) Nullset Forge. All rights reserved.
+
+By downloading, installing or running DCS Crew Chief ("the Software") you agree to the following.
+
+
+1. WHAT YOU MAY DO
+
+   You may download, install and use the Software free of charge on machines you own or control,
+   for personal, non-commercial use.
+
+
+2. WHAT YOU MAY NOT DO
+
+   You may not sell, rent, sublicense or otherwise distribute the Software, whether on its own or
+   bundled with anything else.
+
+   You may not decompile, disassemble or reverse engineer the Software, nor attempt to derive its
+   source code, except where that right cannot lawfully be excluded.
+
+   You may not remove or alter any copyright, branding or attribution.
+
+   The Software is closed source. Nothing here grants any right to its source code.
+
+
+3. WHAT THE SOFTWARE DOES TO YOUR MACHINE
+
+   Stated plainly, because the Software deliberately changes system state in order to work:
+
+   - It closes background applications you have configured it to manage, such as overlays.
+   - It temporarily disables overlay hooks belonging to other applications, including Steam
+     and Discord.
+   - It may temporarily change display settings such as HDR.
+   - It may start applications you have configured, such as radio or force-feedback software.
+   - It may clear GPU shader caches, and may install performance mods and DLSS files into your
+     DCS installation when you enable those features.
+
+   Everything the Software suppresses is recorded to disk and restored afterwards. If it is
+   force-quit or crashes mid-session, the next launch detects this and restores your system.
+
+   The Software does not modify core DCS World game files and is intended to be multiplayer safe.
+
+
+4. NO WARRANTY
+
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING
+   BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+   NON-INFRINGEMENT.
+
+   IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
+   ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
+   OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+   You use the Software at your own risk. You are responsible for your own backups.
+
+
+5. THIRD-PARTY SOFTWARE
+
+   The Software may download or install third-party components at your request, including NVIDIA
+   DLSS libraries, NVIDIA Profile Inspector and community DCS mods. Those components are covered
+   by their own licences and are not owned by Nullset Forge.
+
+
+6. TERMINATION
+
+   This licence ends automatically if you breach it. On termination you must stop using the
+   Software and delete your copies.
+
+
+Nullset Forge — https://nullsetforge.com
