@@ -46,15 +46,18 @@ Crew Chief is **not code-signed**, so Windows SmartScreen will show a blue
 That is expected. It means the file has no purchased signing certificate — not that anything is
 wrong with it. To continue: click **More info**, then **Run anyway**.
 
-If you'd rather verify the download first, each release lists a **SHA-256** checksum in its notes.
-Compare it before running:
+### Updates are signed, even though the app isn't
 
-```powershell
-Get-FileHash .\CrewChief-v50.0.zip -Algorithm SHA256
-```
+Every release asset carries a **cryptographic signature** in its notes, made with a private key
+that never leaves the developer's machine.
 
-Crew Chief also checks this hash itself before applying any automatic update, and refuses to
-install a download that doesn't match.
+Crew Chief verifies that signature before applying any automatic update, and refuses anything it
+cannot prove came from us. So while Windows can't vouch for the app on first download, an update
+**cannot** be swapped for something malicious — not by a compromised depot, and not by anything
+sitting between you and GitHub.
+
+That is a different and stronger guarantee than a checksum, which only tells you the file
+downloaded intact.
 
 ## Requirements
 
