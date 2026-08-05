@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How Crew Chief Works</title>
+<meta name="description" content="Crew Chief gets your PC ready before you fly DCS World, and puts everything back when you land. It closes the overlays that cause stutter and crashes in VR, starts your support apps in order, and restores it all afterwards.">
+<meta property="og:title" content="Crew Chief — your ground crew for DCS World">
+<meta property="og:description" content="Closes the overlays that cause stutter and crashes in VR, starts your support apps in order, and puts everything back when you land.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://nullsetforge.github.io/CrewChief-rls/">
+<meta property="og:image" content="https://nullsetforge.github.io/CrewChief-rls/icon.png">
+<meta name="twitter:card" content="summary">
+<link rel="icon" href="icon.png">
+
+<!--
+  A standalone explainer. Deliberately ONE FILE with no dependencies: it has to open from a zip,
+  a USB stick or a forum attachment on a machine that has never seen this project. No CDN, no
+  build step, no fonts to fetch.
+
+  Palette is lifted from Resources/theme.css (the Forge palette) so this page and the app it
+  describes are visibly the same product.
+-->
+<style>
+:root{
+  --bg:#2E2841; --surface:#35304A; --card:#3B364E; --well:#221F30; --border:#4A4463;
+  --accent:#5F47D7; --accent-glow:#7A63E8; --accent-bg:rgba(95,71,215,.16);
+  --text:#FFFFFF; --text-muted:#C4BDE7; --text-dim:#8E86AD;
+  --green:#55A049; --amber:#FFC107; --red:#D32F2F; --cyan:#67B6BD;
+  --ui:system-ui,"Segoe UI",Roboto,sans-serif;
+  --mono:"Cascadia Mono",Consolas,ui-monospace,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:
+    radial-gradient(1200px 700px at 15% -10%, rgba(95,71,215,.30), transparent 60%),
+    radial-gradient(900px 600px at 95% 8%, rgba(103,182,189,.13), transparent 55%),
+    var(--bg);
+  color:var(--text);font:15px/1.65 var(--ui);
+  -webkit-font-smoothing:antialiased;padding:0 20px 90px;
+}
+.wrap{max-width:960px;margin:0 auto}
+
+/* ---------- hero ---------- */
+header{padding:74px 0 44px;text-align:center}
+.mark{width:96px;height:96px;margin-bottom:20px}
+h1{font-size:44px;font-weight:800;letter-spacing:2.5px;line-height:1}
+h1 .b{color:var(--accent-glow)}
+.tag{color:var(--text-muted);font-size:17px;margin-top:14px}
+.sub{color:var(--text-dim);font-size:13px;margin-top:8px}
+
+h2{font-size:12px;font-weight:700;letter-spacing:2.6px;text-transform:uppercase;
+   color:var(--text-dim);margin:64px 0 18px;display:flex;align-items:center;gap:14px}
+h2::after{content:"";flex:1;height:1px;background:var(--border)}
+h3{font-size:16px;font-weight:600;margin-bottom:6px}
+p{color:var(--text-muted);margin-bottom:14px}
+b{color:var(--text)}
+.dim{color:var(--text-dim)}
+
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:22px 24px}
+.well{background:var(--well);border:1px solid var(--border);border-radius:10px;
+      padding:15px 17px;font:12.5px/1.7 var(--mono);color:var(--text-muted);
+      white-space:pre-wrap;overflow-x:auto}
+
+/* ---------- the problem ---------- */
+.mess{display:flex;flex-wrap:wrap;gap:9px;margin:22px 0 10px;justify-content:center}
+.chip{border:1px solid var(--border);border-radius:99px;padding:7px 15px;font-size:13px;
+      background:var(--surface);color:var(--text-muted);transition:.25s}
+.chip.bad{border-color:var(--red);color:#ffb4b4;background:rgba(211,47,47,.13)}
+.chip.good{border-color:var(--green);color:#b6e6ae;background:rgba(85,160,73,.13)}
+
+/* ---------- phases ---------- */
+.phases{display:grid;gap:11px}
+.ph{display:grid;grid-template-columns:62px 1fr;gap:20px;align-items:start;
+    background:var(--card);border:1px solid var(--border);border-left:3px solid var(--accent);
+    border-radius:11px;padding:17px 20px;cursor:pointer;transition:.18s}
+.ph:hover{border-left-color:var(--cyan);transform:translateX(3px)}
+.ph.on{border-left-color:var(--cyan);background:var(--surface)}
+.ph .n{font:800 30px/1 var(--mono);color:var(--accent-glow);text-align:center}
+.ph.on .n{color:var(--cyan)}
+.ph .t{font-size:11px;font-weight:700;letter-spacing:1.7px;text-transform:uppercase;color:var(--text)}
+.ph .d{color:var(--text-muted);font-size:14px;margin-top:5px}
+.ph .more{display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);
+          font-size:13.5px;color:var(--text-dim)}
+.ph.on .more{display:block}
+.hint{text-align:center;color:var(--text-dim);font-size:12px;margin-top:14px}
+
+/* ---------- board ---------- */
+.board{background:var(--well);border:1px solid var(--border);border-radius:11px;overflow:hidden}
+.brow{display:grid;grid-template-columns:1fr 108px 1fr;gap:14px;padding:11px 17px;
+      border-bottom:1px solid var(--border);font:12.5px/1.5 var(--mono);align-items:center}
+.brow:last-child{border-bottom:0}
+.brow .nm{color:var(--text)}
+.brow .fate{color:var(--text-dim);text-align:right}
+.pill{font:700 9px/1.9 var(--ui);letter-spacing:.7px;text-transform:uppercase;
+      border-radius:99px;padding:0 9px;text-align:center;border:1px solid currentColor}
+.h{color:var(--red)} .p{color:var(--amber)} .c{color:var(--cyan)} .f{color:var(--green)}
+
+/* ---------- the written list ---------- */
+.led{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.led .card{border-top:3px solid var(--red)}
+.led .card.ok{border-top-color:var(--green)}
+.led h3{font-size:13px;letter-spacing:.4px}
+.led p{font-size:13.5px;margin:0}
+
+/* ---------- architecture ---------- */
+.arch{display:grid;gap:0}
+.layer{background:var(--card);border:1px solid var(--border);padding:20px 24px}
+.layer:first-child{border-radius:12px 12px 0 0}
+.layer:last-child{border-radius:0 0 12px 12px;border-top:0}
+.layer .k{font:700 10px/1 var(--ui);letter-spacing:1.8px;text-transform:uppercase;color:var(--cyan)}
+.layer h3{margin:8px 0 5px}
+.layer p{font-size:13.5px;margin:0}
+.pipe{display:flex;align-items:center;justify-content:center;gap:26px;
+      background:var(--well);border-left:1px solid var(--border);border-right:1px solid var(--border);
+      padding:11px;font:11px/1 var(--mono);color:var(--text-dim)}
+
+/* ---------- future ---------- */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.f-card{background:var(--card);border:1px solid var(--border);border-radius:11px;padding:18px 20px}
+.f-card .k{font:700 9px/1 var(--ui);letter-spacing:1.5px;text-transform:uppercase;
+           color:var(--accent-glow);margin-bottom:9px;display:block}
+.f-card p{font-size:13.5px;margin:0}
+
+.kbd{display:inline-block;min-width:20px;padding:2px 7px;margin-right:4px;border-radius:5px;
+     background:var(--well);border:1px solid var(--border);border-bottom-width:2px;
+     font:600 11px/1.5 var(--mono);color:var(--text);text-align:center}
+blockquote{border-left:3px solid var(--cyan);background:var(--accent-bg);
+           border-radius:0 10px 10px 0;padding:16px 20px;margin:22px 0}
+blockquote p{color:var(--text);margin:0;font-size:15.5px}
+
+/* ---------- download ---------- */
+.dl{text-align:center;padding:8px 0 4px}
+.dl-btn{display:inline-block;padding:15px 40px;border-radius:11px;text-decoration:none;
+        background:linear-gradient(135deg,var(--accent),var(--accent-glow));color:#fff;
+        font:700 15px/1 var(--ui);letter-spacing:.4px;
+        box-shadow:0 10px 26px -12px var(--accent-glow);transition:.18s}
+.dl-btn:hover{transform:translateY(-2px);box-shadow:0 16px 32px -12px var(--accent-glow)}
+.dl-note{margin-top:14px;font-size:12px;color:var(--text-dim);line-height:1.9}
+.dl-note a{color:var(--cyan)}
+
+footer{margin-top:70px;padding-top:26px;border-top:1px solid var(--border);
+       text-align:center;color:var(--text-dim);font-size:12px}
+footer .home{display:inline-block;color:var(--accent-glow);text-decoration:none;
+             font-weight:600;letter-spacing:.4px;font-size:13px}
+footer .home:hover{color:var(--cyan)}
+footer .fine{margin-top:7px}
+
+@media(max-width:720px){
+  .led,.grid2{grid-template-columns:1fr}
+  .brow{grid-template-columns:1fr;gap:4px}
+  .brow .fate{text-align:left}
+  h1{font-size:32px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <!-- The mark, inline so this file stays self-contained. Same geometry as build-icons.py. -->
+  <svg class="mark" viewBox="0 0 256 256" aria-label="Crew Chief">
+    <defs>
+      <linearGradient id="tile" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#2E2841"/><stop offset=".55" stop-color="#453473"/>
+        <stop offset="1" stop-color="#5F47D7"/>
+      </linearGradient>
+      <linearGradient id="jet" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#FFFFFF"/><stop offset="1" stop-color="#C4BDE7"/>
+      </linearGradient>
+    </defs>
+    <rect x="8" y="8" width="240" height="240" rx="56" fill="url(#tile)"/>
+    <rect x="8" y="8" width="240" height="240" rx="56" fill="none" stroke="#fff" stroke-opacity=".16" stroke-width="3"/>
+    <circle cx="128" cy="130" r="86" fill="none" stroke="#67B6BD" stroke-opacity=".9" stroke-width="8"/>
+    <g stroke="#67B6BD" stroke-opacity=".55" stroke-width="9" stroke-linecap="round">
+      <path d="M128 26v22M128 212v22M22 130h22M212 130h22"/>
+    </g>
+    <path fill="url(#jet)" d="M128 46l8.5 28v38l63.5 52v17l-63.5-24v32l13.5 18v8L128 208l-22 7v-8l13.5-18v-32L56 181v-17l63.5-52V74z"/>
+    <ellipse cx="128" cy="95" rx="6.5" ry="17" fill="#2E2841" fill-opacity=".85"/>
+    <circle cx="128" cy="203" r="9" fill="#EAFCFF"/>
+  </svg>
+  <h1>CREW<span class="b">CHIEF</span></h1>
+  <div class="tag">Your ground crew for DCS World.</div>
+  <div class="sub">It gets your PC ready before you fly, and puts everything back when you land.</div>
+</header>
+
+<h2>The problem</h2>
+<p>Running DCS well isn't one program. It's a dozen, and most of them push themselves into your
+   game whether you want them to or not.</p>
+<div class="mess" id="mess"></div>
+<p class="hint" id="messHint">Each one is useful on its own. The trouble starts when several of them draw on your game at once.</p>
+
+<div class="card" style="margin-top:22px">
+  <h3>Why overlapping overlays break things</h3>
+  <p style="margin-bottom:0">They all work the same way — they hook into the part of DCS that puts
+     pixels on screen. One doing that is usually fine. Two or three fighting over it is where you
+     get stutter, and it is a well-known cause of DCS crashing outright. In VR there is no spare
+     headroom to absorb it, so you feel it immediately.</p>
+  <p style="margin:10px 0 0"><b>Step 1 is about making sure only the ones you actually want are
+     hooked in when the game starts.</b></p>
+</div>
+
+<p style="margin-top:22px">So you end up with a routine. Close these six. Start those three. Turn HDR off or the cockpit
+   looks washed out, and remember to turn it back on. In the right order. <b>Every time you
+   fly.</b></p>
+<p>Miss one step and you usually find out in the air.</p>
+
+<h2>Six steps</h2>
+<div class="phases" id="phases"></div>
+<div class="hint">Click any step to see what it actually does.</div>
+
+<h2>You see the plan first</h2>
+<p>Before it touches anything, Crew Chief shows you what's running right now and what it plans to
+   do with each one. This screen only looks. Nothing gets closed until you press launch.</p>
+<div class="board">
+  <div class="brow"><span class="nm">RTSS</span><span class="pill h">hostile</span><span class="fate">closed at step 1</span></div>
+  <div class="brow"><span class="nm">Discord</span><span class="pill h">hostile</span><span class="fate">overlay off, app stays open</span></div>
+  <div class="brow"><span class="nm">MSI Afterburner</span><span class="pill p">protected</span><span class="fate">overclocking, left alone</span></div>
+  <div class="brow"><span class="nm">Duet Display</span><span class="pill h">hostile</span><span class="fate">closed at step 2</span></div>
+  <div class="brow"><span class="nm">VarjoBase</span><span class="pill c">cold</span><span class="fate">started at step 4</span></div>
+  <div class="brow"><span class="nm">SimpleRadio</span><span class="pill f">friendly</span><span class="fate">already running</span></div>
+</div>
+
+<h2>What happens if it gets interrupted</h2>
+<blockquote><p>Crew Chief assumes it will get interrupted. <b>So it writes down what it changed, before it changes it.</b></p></blockquote>
+<p>Your PC crashes mid-flight. Windows reboots for an update. A mission hangs and you kill it from
+   Task Manager. In all of those, step 6 never runs.</p>
+<div class="led">
+  <div class="card">
+    <h3 style="color:var(--red)">The simple way</h3>
+    <p>Remember what you closed while you're running. The program dies, that memory goes with it,
+       and you're left with a PC missing its overlays and no idea what changed.</p>
+  </div>
+  <div class="card ok">
+    <h3 style="color:var(--green)">What Crew Chief does</h3>
+    <p>Write every change <b>to a file on your drive before making it</b>, and only cross it off
+       once it's genuinely back. Next start-up, Crew Chief reads that file, spots the session
+       that never finished, and puts your PC back before doing anything else.</p>
+  </div>
+</div>
+<div class="well" style="margin-top:16px">! ORPHANED SESSION DETECTED
+  restoring 7 items from the previous run...
+  - RTSS ......................... relaunched
+  - Steam overlay ................ DLL restored
+  - HDR .......................... re-enabled
+  deck clear.</div>
+<p class="hint" style="margin-top:12px">You don't have to notice this happened. That's the idea.</p>
+
+<h2>The VR extras</h2>
+<p>Crew Chief also ships a few known fixes for DCS in VR. Each one is a switch in Settings — they
+   are options, not something that happens to you.</p>
+<div class="grid2">
+  <div class="f-card"><span class="k">empty VR hangar</span>
+    <p>Open the F10 map in VR and DCS loads a full 3D hangar behind it, every single time, as a
+       backdrop you never look at. It has done this for years. This swaps it for an empty scene,
+       so the map opens faster and stops costing you frames for scenery nobody sees.</p></div>
+  <div class="f-card"><span class="k">bigger UI text</span>
+    <p>DCS menu and radio text is small, and in a headset it can be genuinely hard to read. This
+       bumps the sizes on the message panels and the radio menu.</p></div>
+  <div class="f-card"><span class="k">SharkPlanner</span>
+    <p>A VR-friendly way to enter waypoints and targets without leaning forward and pecking at a
+       cockpit keypad. You get a window you can click, and it types the coordinates into the
+       aircraft for you. Crew Chief keeps it updated for you.</p>
+    <p style="margin-top:10px">Open it in-game with
+       <span class="kbd">Ctrl</span><span class="kbd">Shift</span><span class="kbd">Space</span></p></div>
+  <div class="f-card"><span class="k">DLSS files</span>
+    <p>Crew Chief can keep DCS on a newer DLSS library than the one it ships with, which is
+       usually sharper in VR. Off by default — turn it on if you want it.</p></div>
+</div>
+<p class="hint" style="margin-top:14px">None of these touch core DCS files. They live in your Saved
+   Games folder, where user mods are meant to go, and they are safe for multiplayer.</p>
+
+<h2>How it's put together</h2>
+<div class="arch">
+  <div class="layer">
+    <span class="k">the part you look at</span>
+    <h3>The Crew Chief app</h3>
+    <p>A normal Windows window showing a themed console. It shows you what's happening and sends
+       your answers back down. Five colour schemes, light and dark. Under 2 MB.</p>
+  </div>
+  <div class="pipe"><span>▲ tells the app what's happening</span><span>▼ sends your answers down</span></div>
+  <div class="layer">
+    <span class="k">the part that does the work</span>
+    <h3>The Crew Chief Engine Script</h3>
+    <p>Runs underneath the app as its own separate program. It finds what's running, closes it,
+       puts it back, installs mods and applies your Nvidia settings. Keeping it separate means
+       the screen in front can be redesigned without risking the part that touches your PC.</p>
+  </div>
+</div>
+
+<div class="grid2" style="margin-top:16px">
+  <div class="f-card">
+    <span class="k">delivery</span>
+    <p><b>The extra files come separately.</b> Mods, DLSS libraries and Nvidia profiles are their
+       own download, fetched the first time you run it. That way the app can update often
+       without pulling 50 MB along every time.</p>
+  </div>
+  <div class="f-card">
+    <span class="k">trust</span>
+    <p><b>Every update is checked before it's installed.</b> Crew Chief signs each release with its
+       own key and won't apply anything that doesn't match — it deletes it instead.</p>
+  </div>
+</div>
+
+<h2>Where this is going</h2>
+<p>Crew Chief started out solving one problem: stop background apps breaking VR. It's turned into
+   a good place to put everything else that's fiddly about running a serious sim setup. The
+   plumbing is already there, so adding something new means adding a step — not another tray icon
+   and another settings file to remember.</p>
+<div class="grid2">
+  <div class="f-card"><span class="k">more side-chains</span>
+    <p>TrackIR, tracker calibration, button box profiles, per-aircraft Nvidia settings. Anything
+       that currently lives in a text file and your memory.</p></div>
+  <div class="f-card"><span class="k">crash diagnosis</span>
+    <p>The crash folder already keeps the log, your hardware and what was running. Next is reading
+       it for you: known problems, mods that clash, "third time this month and it's always the
+       same one".</p></div>
+  <div class="f-card"><span class="k">performance you can see</span>
+    <p>Frame data next to what was running at the time, so "it stutters sometimes" becomes
+       something you can point at.</p></div>
+  <div class="f-card"><span class="k">profiles</span>
+    <p>A heavy VR campaign setup and a quick 2D multiplayer session aren't the same thing, and
+       shouldn't need the same list of apps closed.</p></div>
+</div>
+<blockquote style="border-left-color:var(--amber);background:rgba(255,193,7,.10)">
+  <p>The rule for all of it stays the same: <b>it has to survive being interrupted.</b> If a
+     feature can leave your PC in a state you'd have to fix by hand, it isn't finished.</p>
+</blockquote>
+
+<h2>Get it</h2>
+<div class="dl">
+  <!-- /releases/latest, NOT a versioned URL. This page will outlive v50 and a hardcoded version
+       becomes a dead link the moment the next release lands.
+       ⚠️ Only works because the publisher marks bundle releases --latest=false. This depot puts
+       two channels in one repo, and GitHub picks "latest" by recency across all of them, so
+       without that flag a bundle published after an app would silently claim this link. -->
+  <a class="dl-btn" href="https://github.com/NullsetForge/CrewChief-rls/releases/latest"
+     target="_blank" rel="noopener">Download the latest release</a>
+  <div class="dl-note">Windows 10 or 11 · needs the
+    <a href="https://dotnet.microsoft.com/download/dotnet/8.0" target="_blank" rel="noopener">.NET 8 Desktop Runtime</a>
+    · SmartScreen will warn on first run — More info, then Run anyway</div>
+</div>
+
+<footer>
+  <a class="home" href="https://nullsetforge.com" target="_blank" rel="noopener">nullsetforge.com</a>
+  <div class="fine">Crew Chief · Not affiliated with Eagle Dynamics</div>
+</footer>
+</div>
+
+<script>
+/* Everything below is progressive enhancement. The page reads correctly with JS disabled —
+   the phase detail is the only thing hidden, and it is a nice-to-have, not the content. */
+
+var APPS = [
+  "RivaTuner","Discord","Steam overlay","MSI Afterburner","NZXT CAM","GPU Tweak",
+  "SimpleRadio","VoiceAttack","VPForce","VarjoBase","HDR","shader cache"
+];
+var KEEP = { "SimpleRadio":1, "VoiceAttack":1, "VPForce":1, "VarjoBase":1 };
+
+var mess = document.getElementById("mess");
+APPS.forEach(function(a){
+  var el = document.createElement("span");
+  el.className = "chip"; el.textContent = a; mess.appendChild(el);
+});
+
+/* One pass over the chips, on a timer, showing what Crew Chief decides about each. Timers not
+   rAF: this file may sit in a background tab, and a half-finished animation is worse than a
+   slightly late one. */
+var chips = [].slice.call(mess.children), i = 0;
+function sweep(){
+  if (i >= chips.length) {
+    document.getElementById("messHint").textContent =
+      "Red gets closed and put back afterwards. Green gets started for you. None of it is guessed — you set it up once.";
+    return;
+  }
+  var c = chips[i];
+  c.classList.add(KEEP[c.textContent] ? "good" : "bad");
+  i++;
+  setTimeout(sweep, 190);
+}
+setTimeout(sweep, 700);
+
+var PHASES = [
+  ["1","Securing airspace",
+   "Closes the overlays and monitoring apps that push themselves into DCS.",
+   "Before it closes anything, it writes that item down to a file on your drive. That order matters: a note you make afterwards is a note you don't have if the power goes out."],
+  ["2","Systems check",
+   "Confirms your headset is connected, installs mods, checks your DLSS files.",
+   "If the headset doesn't answer, you get offered a 2D flight instead. Your settings don't change — it's a choice about tonight only."],
+  ["3","SEAD / ECM",
+   "Deals with the ones that don't respond to being asked nicely.",
+   "The Steam overlay file, the Discord hook, and shader caches that go stale if you have more than one GPU. The Steam file is renamed rather than deleted, and put back at step 6."],
+  ["4","Flight prep",
+   "Starts the things you do want, in the order they need to start.",
+   "SimpleRadio, VPForce, VoiceAttack, your headset software. Order matters — some need to be up before the sim, some alongside it. Each one grabs your screen as it opens, so Crew Chief brings itself back to the front once they've all settled."],
+  ["5","AWACS active",
+   "DCS is running. Crew Chief goes quiet and watches.",
+   "It won't jump in front of your game while you're flying. Being pulled out of VR by a pop-up is worse than whatever it wanted to tell you, so it uses a small notification instead."],
+  ["6","Squadron debrief",
+   "You've landed. Everything from step 1 comes back.",
+   "The written list gets crossed off as each thing is genuinely restored. Anything still on it at the end is something Crew Chief tells you about, rather than quietly forgetting."]
+];
+
+var host = document.getElementById("phases");
+PHASES.forEach(function(p){
+  var d = document.createElement("div");
+  d.className = "ph";
+  d.innerHTML = '<div class="n">' + p[0] + '</div><div>'
+              + '<div class="t">' + p[1] + '</div>'
+              + '<div class="d">' + p[2] + '</div>'
+              + '<div class="more">' + p[3] + '</div></div>';
+  d.onclick = function(){ d.classList.toggle("on"); };
+  host.appendChild(d);
+});
+</script>
+</body>
+</html>
