@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Crew Chief — Threat Board</title>
+<!--
+  A Carrd EMBED. Drop this in with an <iframe>; do not paste it inline.
+
+  An iframe is the right call here even though Carrd accepts raw HTML: it isolates these styles
+  from the site's, it can be updated by pushing to this repo without touching the Carrd project,
+  and it cannot break the page layout if something here changes.
+
+  TRANSPARENT BACKGROUND on purpose - the card behind it shows through, so this reads as part of
+  the site rather than a rectangle pasted onto it.
+
+  It shows the THREAT BOARD because that is the one screen that demonstrates the product instead
+  of describing it. The card copy above it already explains the problem in words; this shows the
+  answer. It also animates the actual sequence - scan, then strike each contact off - which is
+  what the app really does, not a mockup of it.
+-->
+<style>
+:root{
+  --card:#3B364E; --well:#221F30; --border:#4A4463;
+  --accent:#5F47D7; --text:#FFFFFF; --muted:#C4BDE7; --dim:#8E86AD;
+  --green:#55A049; --amber:#FFC107; --red:#D32F2F; --cyan:#67B6BD;
+  --ui:system-ui,"Segoe UI",Roboto,sans-serif;
+  --mono:"Cascadia Mono",Consolas,ui-monospace,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:transparent}
+body{font:13px/1.5 var(--ui);color:var(--text);-webkit-font-smoothing:antialiased;
+     display:flex;align-items:center;justify-content:center;padding:2px}
+
+.win{width:100%;max-width:760px;background:var(--card);border:1px solid var(--border);
+     border-radius:11px;overflow:hidden;box-shadow:0 14px 34px -18px rgba(0,0,0,.85)}
+
+.bar{display:flex;align-items:center;gap:9px;padding:8px 12px;background:var(--well);
+     border-bottom:1px solid var(--border)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--dim);flex-shrink:0;
+     transition:background .3s}
+.bar.live .dot{background:var(--amber)}
+.bar.done .dot{background:var(--green)}
+.ttl{font:700 10px/1 var(--ui);letter-spacing:1.6px;text-transform:uppercase;color:var(--muted)}
+.count{margin-left:auto;font:600 10px/1 var(--mono);color:var(--dim)}
+
+.rows{padding:4px 0}
+.row{display:grid;grid-template-columns:1fr 96px 150px;gap:12px;align-items:center;
+     padding:7px 13px;font:12px/1.4 var(--mono);
+     opacity:0;transform:translateY(-4px);transition:opacity .32s ease,transform .32s ease}
+.row.in{opacity:1;transform:none}
+.nm{color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pill{font:700 8px/1.85 var(--ui);letter-spacing:.7px;text-transform:uppercase;border-radius:99px;
+      padding:0 8px;text-align:center;border:1px solid currentColor;white-space:nowrap}
+.h{color:var(--red)} .p{color:var(--amber)} .c{color:var(--cyan)} .f{color:var(--green)}
+.fate{color:var(--dim);text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+      transition:color .3s}
+.row.hit .nm{text-decoration:line-through;color:var(--dim)}
+.row.hit .fate{color:var(--green)}
+
+.foot{padding:7px 13px;border-top:1px solid var(--border);background:var(--well);
+      font:10px/1.4 var(--ui);color:var(--dim);text-align:center}
+
+@media(max-width:560px){
+  .row{grid-template-columns:1fr 84px;gap:8px;font-size:11px}
+  .fate{display:none}
+}
+@media(prefers-reduced-motion:reduce){
+  .row{transition:none}
+}
+</style>
+</head>
+<body>
+
+<div class="win">
+  <div class="bar" id="bar">
+    <span class="dot"></span>
+    <span class="ttl">Threat Board</span>
+    <span class="count" id="count">scanning…</span>
+  </div>
+  <div class="rows" id="rows"></div>
+  <div class="foot">It only looks. Nothing is closed until you press launch.</div>
+</div>
+
+<script>
+/* Real contacts, real verdicts, real outcomes - lifted from the app rather than invented, so
+   what a visitor sees here is what they get when they run it. */
+var ROWS = [
+  { nm:'RTSS',            cls:'h', verdict:'hostile',   fate:'closed at step 1',       hit:'closed'   },
+  { nm:'Discord',         cls:'h', verdict:'hostile',   fate:'overlay off, app stays', hit:'overlay off' },
+  { nm:'MSI Afterburner', cls:'p', verdict:'protected', fate:'overclocking, spared',   hit:null       },
+  { nm:'Steam overlay',   cls:'h', verdict:'hostile',   fate:'stowed at step 3',       hit:'stowed'   },
+  { nm:'SimpleRadio',     cls:'c', verdict:'cold',      fate:'started at step 4',      hit:'started'  },
+  { nm:'VarjoBase',       cls:'f', verdict:'friendly',  fate:'already running',        hit:null       }
+];
+
+var rowsEl = document.getElementById('rows');
+var countEl = document.getElementById('count');
+var barEl = document.getElementById('bar');
+var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+var els = ROWS.map(function (r) {
+  var d = document.createElement('div');
+  d.className = 'row';
+  d.innerHTML = '<span class="nm">' + r.nm + '</span>'
+              + '<span class="pill ' + r.cls + '">' + r.verdict + '</span>'
+              + '<span class="fate">' + r.fate + '</span>';
+  rowsEl.appendChild(d);
+  return d;
+});
+
+/* setTimeout, not requestAnimationFrame. This runs in an iframe that is frequently scrolled out
+   of view or sitting in a background tab, and rAF is suspended there - the animation would
+   freeze half-finished and the visitor would see a partly-drawn board. */
+function run() {
+  els.forEach(function (el, i) {
+    setTimeout(function () {
+      el.classList.add('in');
+      var n = i + 1;
+      countEl.textContent = n + ' contact' + (n > 1 ? 's' : '');
+      if (n === ROWS.length) barEl.classList.add('live');
+    }, reduce ? 0 : 220 * i);
+  });
+
+  if (reduce) { settle(); return; }
+  setTimeout(settle, 220 * ROWS.length + 900);
+}
+
+function settle() {
+  var order = ROWS.map(function (r, i) { return r.hit ? i : -1; }).filter(function (i) { return i >= 0; });
+  order.forEach(function (idx, k) {
+    setTimeout(function () {
+      els[idx].classList.add('hit');
+      els[idx].querySelector('.fate').textContent = ROWS[idx].hit;
+      if (k === order.length - 1) {
+        barEl.classList.remove('live');
+        barEl.classList.add('done');
+        countEl.textContent = 'deck clear';
+      }
+    }, reduce ? 0 : 420 * k);
+  });
+}
+
+/* Start once it is actually on screen, so someone who scrolls down later sees the sequence from
+   the beginning instead of arriving at a finished board.
+   ⚠️ WITH A HARD FALLBACK. If the observer never fires - a browser that throttles it, an iframe
+   the parent has sized oddly, a page that never composites - the rows stay at opacity 0 and the
+   visitor sees an EMPTY BOX. An unstarted animation must fail to "shown" rather than "blank",
+   because blank looks broken and broken is worse than un-animated. */
+var started = false;
+function start() { if (started) return; started = true; run(); }
+
+if ('IntersectionObserver' in window) {
+  try {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) { if (e.isIntersecting) { io.disconnect(); start(); } });
+    }, { threshold: 0.25 });
+    io.observe(document.querySelector('.win'));
+  } catch (e) { start(); }
+  setTimeout(start, 1500);      // the fallback: never leave it blank
+} else {
+  start();
+}
+</script>
+</body>
+</html>
