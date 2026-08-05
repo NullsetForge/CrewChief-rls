@@ -10,6 +10,9 @@ right order, watches the flight, and restores everything afterwards.
 
 It does **not** modify core DCS files, and it is multiplayer safe.
 
+**[How Crew Chief works →](https://nullsetforge.github.io/CrewChief-rls/)** — a short illustrated
+walkthrough of what it does and why.
+
 ---
 
 ## Download
