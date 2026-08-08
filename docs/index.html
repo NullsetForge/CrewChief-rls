@@ -423,18 +423,24 @@ blockquote p{color:var(--text);margin:0;font-size:19px;max-width:none}
 @media (prefers-reduced-motion: reduce){ .slink{transition:none} .slink:hover{transform:none} }
 
 /* ---------------------------------------------------------------- footer lockup */
+/* Tagline and copyright only. The wordmark lockup, the "A Nullset Forge project" byline and the
+   Eagle Dynamics disclaimer are gone — the mark and wordmark now OPEN the page in the hero, so
+   repeating them at the foot was saying the same thing twice.
+   ⚠️ The disclaimer still lives in README.md; this page no longer carries it. */
 .foot{margin-top:56px;padding-top:34px;border-top:1px solid var(--border);text-align:center}
-.footwm{letter-spacing:-.4px;
-  font:700 clamp(26px,4vw,40px)/1 "MuseoModerno",var(--ui)}
-.footwm i{font-style:normal;color:var(--accent-glow)}
-.footby{margin-top:10px;font-size:16px;color:var(--text-dim);letter-spacing:.4px}
-.footby b{color:var(--text-muted)}
-.footby a{color:var(--accent-glow);text-decoration:none;font-weight:600}
-.footby a:hover{color:var(--cyan)}
-.footfine{margin-top:8px;font-size:15px;color:var(--text-dim)}
-.foottag{margin-top:20px;font-style:italic;font-size:17px;color:var(--text-muted);
-  max-width:46ch;margin-left:auto;margin-right:auto}
-.footcopy{margin-top:12px;font-size:15px;font-weight:600;color:var(--text-dim)}
+.footcopy a{color:var(--accent-glow);text-decoration:none}
+.footcopy a:hover{color:var(--cyan);text-decoration:underline}
+/* ⚠️ THE DISPLAY FACE IS VARIABLE ON WEIGHT ONLY — wght 100..900, no italic axis, italicAngle 0.
+   Two consequences, both easy to trip over:
+   1. `font-style:italic` here is a browser-SYNTHESIZED oblique, not a drawn italic. Telmo asked
+      for it explicitly and it is one short line of brand voice, so it stays — but do not read it
+      as evidence the face has an italic, and do not copy the pattern into body copy.
+   2. The variable default is 100 (Thin). Any rule naming MuseoModerno MUST state a weight or it
+      renders hairline — which looks like a font-loading failure rather than a style choice. */
+.foottag{margin-top:22px;font:500 italic 18px/1.5 "MuseoModerno",var(--ui);
+  color:var(--text-muted);max-width:46ch;margin-left:auto;margin-right:auto}
+.footcopy{margin-top:14px;font:700 16px/1.4 "MuseoModerno",var(--ui);
+  letter-spacing:.2px;color:var(--text-muted)}
 
 /* ⚠️ ONE reduced-motion arm for the whole page, and every rule here either stops a loop or removes
    a transition. None of them re-hide anything: the script lands reduced-motion visitors in the
@@ -469,6 +475,13 @@ blockquote p{color:var(--text);margin:0;font-size:19px;max-width:none}
   .f-card p,.layer p,.step .more{font-size:15.5px}
   .step span{font-size:15.5px}
   .hint{font-size:14.5px}
+  /* Six 52px buttons need 382px and a phone column has ~331, so they wrap 5+1 — one orphan on its
+     own row, which reads as a mistake. Capping the row forces a deliberate 3+3 instead: 3 buttons
+     measure 184px, 4 would need 250, so anything in between lands exactly three per row. */
+  .slinks{max-width:210px;margin-left:auto;margin-right:auto}
+  /* MuseoModerno is wide, and this line is long. At 16px it runs the full column edge to edge. */
+  .footcopy{font-size:14px}
+  .foottag{font-size:16.5px}
 }
 /* A 16:9 band on a narrow screen is only ~200px tall; the UI panel and the log cannot both fit,
    and the log is the one carrying the words. The panel and its cursor stand down. */
@@ -799,12 +812,10 @@ blockquote p{color:var(--text);margin:0;font-size:19px;max-width:none}
   </section>
 
   <footer class="foot">
-    <div class="footwm">CREW<i>CHIEF</i></div>
-    <div class="footby">A <b>Nullset Forge</b> project &nbsp;·&nbsp;
-      <a href="https://nullsetforge.com" target="_blank" rel="noopener">nullsetforge.com</a></div>
-    <div class="footfine">Not affiliated with Eagle Dynamics</div>
     <p class="foottag">For us the stars are wasting away because we will never reach them…</p>
-    <div class="footcopy">© 2026 Nullset Forge. All rights reserved.</div>
+    <div class="footcopy">© 2026
+      <a href="https://nullsetforge.com" target="_blank" rel="noopener">NullsetForge</a>.
+      All rights reserved.</div>
   </footer>
 </div>
 
