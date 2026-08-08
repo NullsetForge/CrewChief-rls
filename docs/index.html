@@ -73,7 +73,7 @@
 /* 16px, not 15. See the .wrap note: the column is now sized to the text, so the text can afford
    to be a little bigger without the line running long. */
 body{background-color:var(--bg);color:var(--text);
-  font:16px/1.65 var(--ui);-webkit-font-smoothing:antialiased}
+  font:21px/1.6 var(--ui);-webkit-font-smoothing:antialiased}
 body::before,body::after{content:"";position:fixed;inset:-25%;z-index:-2;pointer-events:none}
 body::before{background-image:var(--carbon);opacity:.55;animation:drift 6s linear infinite}
 body::after{background-image:radial-gradient(circle at var(--key-x) var(--key-y),
@@ -84,19 +84,25 @@ body::after{background-image:radial-gradient(circle at var(--key-x) var(--key-y)
 @keyframes horizon{from{transform:translate3d(14%,10%,0) scale(1.02)}
                    to{transform:translate3d(-14%,-11%,0) scale(1.26)}}
 
-/* ⚠️ THE COLUMN IS SIZED TO THE TEXT, AND THE ART BREAKS OUT OF IT.
-   At 940px wide the bands, headings and cards ran the full column while the prose stopped at
-   534px — a 362px empty gutter, 40% of the width, so every text block read as a narrow strip
-   pinned to the left of a much wider page.
-   Widening the prose to meet the art does not work, and the numbers are why: measured on the
-   running page, a 76ch cap at 16.5px fills the column nicely at 83% but renders a NINETY-character
-   line. `ch` is the width of "0", which in Segoe UI is far wider than the average lowercase glyph,
-   so a ch-based cap always reads ~25% longer than it looks. Comfortable is 70-80 real characters,
-   and at 16px that is about 570px of text — no matter how wide the page is.
-   So the column holds the measure and the ART breaks out instead. One rule, applied consistently:
-   prose, cards and steps keep the 576px column; the hero goes full-bleed and the bands overhang it
-   by 120px a side. The gutter is gone because there is no longer a gutter to have. */
-.wrap{max-width:620px;margin:0 auto;padding:0 22px 90px;position:relative;z-index:1}
+/* ⚠️ ONE WIDTH FOR EVERYTHING — 816px of content, and the TYPE is what makes that readable.
+   This has been through three states, and the middle one is the instructive failure:
+
+   1. 940px column, 66ch prose → the text stopped at 534px inside an 896px column. A 362px empty
+      gutter, 40% of the width, so every paragraph read as a narrow strip pinned to the left.
+   2. 620px column with the art breaking out 120px a side → the gutter was gone, but headings and
+      paragraphs no longer shared an edge with the art, which reads as two different pages.
+   3. This. Text, cards, bands and hero all sit at 816px, so there is exactly one left edge on the
+      page and nothing is inset from anything.
+
+   State 3 only works because the body type moved with it. Measured on the running page, that same
+   paragraph at 816px wide renders **118 characters at 16px** and **83 at 21px** — so the fix for a
+   too-long line is not always a narrower column, it can be bigger type. 21px also suits what this
+   page is: a marketing explainer someone skims, not a reference someone studies.
+
+   ⚠️ Do not "fix" the line length by capping `p` in `ch` again. `ch` is the width of "0", far
+   wider than the average lowercase glyph, so a ch cap reads ~25% longer than the number suggests —
+   a 76ch cap measured out at NINETY real characters. Count rendered characters, not units. */
+.wrap{max-width:860px;margin:0 auto;padding:0 22px 90px;position:relative;z-index:1}
 
 /* ---------------------------------------------------------------- hero */
 /* ⚠️ NOT FULL BLEED, and the art is the reason. The attract pieces are TRIPTYCHS — three panels
@@ -106,7 +112,13 @@ body::after{background-image:radial-gradient(circle at var(--key-x) var(--key-y)
    cover and tiling. It takes the same breakout as the bands instead, so the two share one edge. */
 .hero{position:relative;margin:0 -22px 46px;aspect-ratio:21/9;overflow:hidden;isolation:isolate;
   display:grid;place-items:center;text-align:center}
-@media (min-width:920px){ .hero{margin-left:-120px;margin-right:-120px} }
+/* ⚠️ 860px, and it must match `.wrap`'s max-width exactly — this is not a round number chosen by
+   eye. Below 860 the wrap is the viewport, so the -22px above cancels the padding and the hero
+   goes genuinely edge-to-edge, which is what you want on a phone. At and above 860 the wrap stops
+   growing, so the same -22px would leave the hero 44px wider than the bands and the text: a
+   mismatch too small to read as deliberate and too large to look accidental. Set this to anything
+   other than the wrap width and you reopen that window. */
+@media (min-width:860px){ .hero{margin-left:0;margin-right:0} }
 .hero .cap{position:relative;z-index:9;padding:0 26px;display:grid;place-items:center;
   text-shadow:0 2px 6px rgba(0,0,0,.95),0 0 22px rgba(0,0,0,.8)}
 /* Two hero states, STACKED not swapped. Both stay in the layout — the outgoing one is absolutely
@@ -117,6 +129,20 @@ body::after{background-image:radial-gradient(circle at var(--key-x) var(--key-y)
   transition:opacity .8s ease,transform .8s ease,visibility 0s linear .8s;
   pointer-events:none;width:100%}
 .hstate.on{opacity:1;visibility:visible;transform:none;transition-delay:0s,0s,0s}
+/* THE APP MARK, and the tile is CSS rather than pixels.
+   The baked-in raster (media/mark.webp) carried its own tile, so clipping it with border-radius
+   fought edges that were already drawn — the corners never quite lined up and it read as janky at
+   any size. This uses the -nobg art, which is just the airframe and reticle on transparency, and
+   builds the box, the edge light and the shadow here. The radius is now a real radius, the border
+   is a real border, and it stays crisp at any size because nothing is being re-clipped. */
+.applogo{width:clamp(60px,7.4vw,96px);aspect-ratio:1;margin:0 auto 16px;
+  border-radius:23%;                       /* 56/256, the geometry build-icons.py uses */
+  background:linear-gradient(135deg,#241B3D 0%,#453473 55%,#8B6CFF 100%);
+  box-shadow:0 16px 38px rgba(0,0,0,.6), inset 0 0 0 1px rgba(255,255,255,.17);
+  display:grid;place-items:center}
+.applogo img{width:84%;height:84%;object-fit:contain;display:block;
+  filter:drop-shadow(0 2px 5px rgba(0,0,0,.45))}
+
 .wordmark{font:700 clamp(34px,6.4vw,68px)/1 "MuseoModerno",var(--ui);
   letter-spacing:-.5px;text-shadow:0 3px 18px rgba(0,0,0,.92)}
 .wordmark i{font-style:normal;color:var(--accent-glow)}
@@ -159,18 +185,18 @@ body::after{background-image:radial-gradient(circle at var(--key-x) var(--key-y)
 @keyframes fl{0%,97%{opacity:0}97.5%{opacity:.014}98%{opacity:0}98.5%{opacity:.011}99%{opacity:0}}
 
 /* ---------------------------------------------------------------- prose */
-h2{font:700 27px/1.25 var(--ui);letter-spacing:-.2px;margin:0 0 14px}
+h2{font:700 34px/1.2 var(--ui);letter-spacing:-.4px;margin:0 0 18px}
 h2 i{font-style:normal;color:var(--accent-glow)}
-h3{font-size:16px;font-weight:600;margin-bottom:6px}
+h3{font-size:20px;font-weight:600;margin-bottom:7px}
 /* NO max-width. The column IS the measure now — a cap here would only reintroduce the gutter
    inside a container already sized for reading. */
-p{color:var(--text-muted);margin-bottom:14px}
+p{color:var(--text-muted);margin-bottom:18px}
 p:last-child{margin-bottom:0}
 b{color:var(--text)}
-section{margin-bottom:52px}
-.hint{color:var(--text-dim);font-size:12.5px;margin-top:14px}
+section{margin-bottom:64px}
+.hint{color:var(--text-dim);font-size:16px;margin-top:16px}
 .hint.mid{text-align:center}
-code{font:12.5px/1.5 var(--mono);background:var(--well);border:1px solid var(--border);
+code{font:16px/1.5 var(--mono);background:var(--well);border:1px solid var(--border);
   border-radius:5px;padding:1px 6px;color:var(--text-muted)}
 
 /* the plain card — used by the overlay explainer and, via .f-card, by the ported sections.
@@ -186,7 +212,7 @@ code{font:12.5px/1.5 var(--mono);background:var(--well);border:1px solid var(--b
 /* ---------------------------------------------------------------- the problem: chips */
 .mess{display:flex;flex-wrap:wrap;gap:9px;margin:22px 0 10px;justify-content:center;
   position:relative}
-.chip{border:1px solid var(--border);border-radius:99px;padding:7px 15px;font-size:13px;
+.chip{border:1px solid var(--border);border-radius:99px;padding:8px 17px;font-size:16px;
   background-color:var(--surface);background-image:var(--grad-btn,none);
   color:var(--text-muted);position:relative;
   transition:box-shadow .5s ease,border-color .45s ease,color .45s ease,background .45s ease}
@@ -200,12 +226,9 @@ code{font:12.5px/1.5 var(--mono);background:var(--well);border:1px solid var(--b
 .chip.lit{box-shadow:0 0 16px 2px currentColor, 0 0 0 1px currentColor}
 
 /* ------------------------------------------- inline marquee band, 16:9, its own reel */
-/* THE BREAKOUT. The band overhangs the text column by 120px a side, so the art stays big while
-   the prose keeps its measure. Guarded by a min-width query below — at narrow viewports the
-   negative margins would push the band past the window edge and cause a horizontal scroll. */
+/* NO BREAKOUT. The band is the column width, same as the prose above it — see the .wrap note. */
 .band{position:relative;aspect-ratio:16/9;border-radius:14px;overflow:hidden;isolation:isolate;
-  border:1px solid var(--border);box-shadow:0 22px 60px rgba(0,0,0,.5);margin:26px 0}
-@media (min-width:920px){ .band{margin-left:-120px;margin-right:-120px} }
+  border:1px solid var(--border);box-shadow:0 22px 60px rgba(0,0,0,.5);margin:30px 0}
 /* ---------------------------------------------- console text scrolling over a band
    The log sits ON the art, not in a panel — same doctrine as the app's execution-log panel, where
    the shadow carries legibility rather than an opaque fill. Masked top and bottom so lines arrive
@@ -297,8 +320,8 @@ code{font:12.5px/1.5 var(--mono);background:var(--well);border:1px solid var(--b
   background:var(--card);border:1px solid var(--border);border-left:3px solid var(--accent);
   position:relative;cursor:pointer;
   transition:border-color .4s ease,background .4s ease}
-.step i{flex-shrink:0;width:24px;height:24px;border-radius:7px;font-style:normal;
-  background:var(--accent);color:#fff;font:700 12px/24px var(--ui);text-align:center}
+.step i{flex-shrink:0;width:30px;height:30px;border-radius:8px;font-style:normal;
+  background:var(--accent);color:#fff;font:700 15px/30px var(--ui);text-align:center}
 /* ⚠️ NO z-index ON .step, AND .steps MUST NOT CREATE A CONTEXT EITHER.
    Painting order inside a stacking context is: the element's own background and borders FIRST,
    then its negative-z children. So `.step{z-index:0}` creates a context and the z-index:-1 glow
@@ -316,12 +339,12 @@ code{font:12.5px/1.5 var(--mono);background:var(--well);border:1px solid var(--b
 .step.lit i{box-shadow:0 0 0 3px color-mix(in srgb, var(--accent) 34%, transparent)}
 .step.lit::after{opacity:.7}
 .step b{display:block;letter-spacing:.4px}
-.step span{color:var(--text-muted);font-size:14px}
+.step span{color:var(--text-muted);font-size:17px}
 .step span i{all:unset;font-style:italic}
 /* The per-step detail. The ONE thing on this page hidden in the markup, and it is a nice-to-have
    rather than the content — a visitor with JS off still gets every step and what it does. */
 .step .more{display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);
-  font-size:13.5px;color:var(--text-dim)}
+  font-size:17px;color:var(--text-dim)}
 .step.open .more{display:block}
 /* after .lit, so an opened step keeps its cyan edge even while the reel is lit elsewhere */
 .step.open{border-left-color:var(--cyan)}
@@ -332,12 +355,12 @@ code{font:12.5px/1.5 var(--mono);background:var(--well);border:1px solid var(--b
   border:1px solid var(--border);padding:20px 24px}
 .layer:first-child{border-radius:12px 12px 0 0}
 .layer:last-child{border-radius:0 0 12px 12px;border-top:0}
-.layer .k{font:700 10px/1 var(--ui);letter-spacing:1.8px;text-transform:uppercase;color:var(--cyan)}
+.layer .k{font:700 12px/1 var(--ui);letter-spacing:1.8px;text-transform:uppercase;color:var(--cyan)}
 .layer h3{margin:8px 0 5px}
-.layer p{font-size:13.5px;margin:0}
+.layer p{font-size:17px;margin:0}
 .pipe{display:flex;align-items:center;justify-content:center;gap:26px;
   background:var(--well);border-left:1px solid var(--border);border-right:1px solid var(--border);
-  padding:11px;font:11px/1 var(--mono);color:var(--text-dim);position:relative;overflow:hidden}
+  padding:13px;font:13px/1 var(--mono);color:var(--text-dim);position:relative;overflow:hidden}
 /* packets on a live link */
 .pkt{position:absolute;width:22px;height:2px;border-radius:2px;opacity:0;pointer-events:none}
 .pkt.up  {top:9px;   background:linear-gradient(90deg,transparent,var(--cyan),transparent)}
@@ -358,40 +381,60 @@ code{font:12.5px/1.5 var(--mono);background:var(--well);border:1px solid var(--b
   position:relative;isolation:isolate}
 .f-card::before{content:"";position:absolute;inset:0;z-index:-1;border-radius:inherit;
   background-image:var(--grad-raise,none);pointer-events:none}
-.f-card .k{font:700 9px/1 var(--ui);letter-spacing:1.5px;text-transform:uppercase;
+.f-card .k{font:700 11px/1 var(--ui);letter-spacing:1.5px;text-transform:uppercase;
   color:var(--accent-glow);margin-bottom:9px;display:block}
-.f-card p{font-size:13.5px;margin:0}
+.f-card p{font-size:17px;margin:0}
 .kbd{display:inline-block;min-width:20px;padding:2px 7px;margin-right:4px;border-radius:5px;
   background:var(--well);border:1px solid var(--border);border-bottom-width:2px;
-  font:600 11px/1.5 var(--mono);color:var(--text);text-align:center}
+  font:600 13px/1.5 var(--mono);color:var(--text);text-align:center}
 blockquote{border-left:3px solid var(--amber);background:rgba(255,193,7,.10);
   border-radius:0 10px 10px 0;padding:16px 20px;margin:22px 0 0}
-blockquote p{color:var(--text);margin:0;font-size:15.5px;max-width:none}
+blockquote p{color:var(--text);margin:0;font-size:19px;max-width:none}
 
 /* ---------------------------------------------------------------- get it */
 .dl{text-align:center;padding:8px 0 4px}
 .cta{display:inline-block;padding:15px 40px;border-radius:11px;text-decoration:none;
   background-color:var(--accent);background-image:var(--grad-accent,none);color:#fff;
-  font:700 15px/1 var(--ui);letter-spacing:.4px;
+  font:700 18px/1 var(--ui);letter-spacing:.4px;
   box-shadow:0 12px 30px rgba(139,108,255,.32);transition:.18s}
 .cta:hover{transform:translateY(-2px);box-shadow:0 18px 36px rgba(139,108,255,.42)}
-.dl-note{margin-top:14px;font-size:12px;color:var(--text-dim);line-height:1.9}
+.dl-note{margin-top:16px;font-size:15px;color:var(--text-dim);line-height:1.9}
 .dl-note a{color:var(--cyan)}
 
-/* ---------------------------------------------------------------- footer lockup
-   The mark belongs at the foot, at a size worth looking at. In the hero it was competing with a
-   full-bleed 21:9 painting and lost — it read as a stray favicon. */
-.foot{margin-top:70px;padding-top:44px;border-top:1px solid var(--border);text-align:center}
-.footmark{width:clamp(88px,12vw,132px);height:auto;border-radius:24%;
-  box-shadow:0 18px 48px rgba(0,0,0,.6)}
-.footwm{margin-top:18px;letter-spacing:-.4px;
+/* ---------------------------------------------------------------- socials
+   The mark now opens the page rather than closing it, so the foot is text and links only. */
+.socials{margin-top:70px;padding-top:44px;border-top:1px solid var(--border);text-align:center}
+.socials h2{font-size:clamp(24px,3.4vw,31px);margin-bottom:10px}
+.socials p{margin:0 auto 22px;color:var(--text-muted);max-width:52ch}
+.slinks{display:flex;justify-content:center;flex-wrap:wrap;gap:14px;margin-top:24px}
+/* The ring is a gradient border done with two backgrounds and `padding-box/border-box` rather than
+   a pseudo-element, so the circle stays a single element and nothing can misalign inside it. */
+.slink{width:52px;height:52px;border-radius:99px;display:grid;place-items:center;
+  color:var(--text);text-decoration:none;
+  border:2px solid transparent;
+  background:linear-gradient(var(--surface),var(--surface)) padding-box,
+             linear-gradient(150deg,var(--accent-glow),var(--accent-2)) border-box;
+  box-shadow:0 8px 20px rgba(0,0,0,.4);
+  transition:transform .2s ease,box-shadow .2s ease,color .2s ease}
+.slink:hover{transform:translateY(-3px);color:var(--accent-glow);
+  box-shadow:0 14px 28px rgba(0,0,0,.5)}
+.slink svg{width:23px;height:23px;fill:currentColor;display:block}
+.slink .glyph{font:700 19px/1 var(--ui);letter-spacing:.5px}
+@media (prefers-reduced-motion: reduce){ .slink{transition:none} .slink:hover{transform:none} }
+
+/* ---------------------------------------------------------------- footer lockup */
+.foot{margin-top:56px;padding-top:34px;border-top:1px solid var(--border);text-align:center}
+.footwm{letter-spacing:-.4px;
   font:700 clamp(26px,4vw,40px)/1 "MuseoModerno",var(--ui)}
 .footwm i{font-style:normal;color:var(--accent-glow)}
-.footby{margin-top:9px;font-size:13px;color:var(--text-dim);letter-spacing:.4px}
+.footby{margin-top:10px;font-size:16px;color:var(--text-dim);letter-spacing:.4px}
 .footby b{color:var(--text-muted)}
 .footby a{color:var(--accent-glow);text-decoration:none;font-weight:600}
 .footby a:hover{color:var(--cyan)}
-.footfine{margin-top:7px;font-size:12px;color:var(--text-dim)}
+.footfine{margin-top:8px;font-size:15px;color:var(--text-dim)}
+.foottag{margin-top:20px;font-style:italic;font-size:17px;color:var(--text-muted);
+  max-width:46ch;margin-left:auto;margin-right:auto}
+.footcopy{margin-top:12px;font-size:15px;font-weight:600;color:var(--text-dim)}
 
 /* ⚠️ ONE reduced-motion arm for the whole page, and every rule here either stops a loop or removes
    a transition. None of them re-hide anything: the script lands reduced-motion visitors in the
@@ -416,7 +459,16 @@ blockquote p{color:var(--text);margin:0;font-size:15.5px;max-width:none}
   /* 21:9 of a phone width is ~150px tall — not enough for the wordmark, tagline and subline. */
   .hero{aspect-ratio:auto;min-height:340px}
   .grid2{grid-template-columns:1fr}
-  h2{font-size:23px}
+  h2{font-size:27px}
+}
+/* 21px is sized for an 816px column. Once the column is the viewport, the line gets short and the
+   type just reads as oversized — so it steps back down where the column can no longer justify it. */
+@media (max-width:600px){
+  body{font-size:18px}
+  h2{font-size:25px}
+  .f-card p,.layer p,.step .more{font-size:15.5px}
+  .step span{font-size:15.5px}
+  .hint{font-size:14.5px}
 }
 /* A 16:9 band on a narrow screen is only ~200px tall; the UI panel and the log cannot both fit,
    and the log is the one carrying the words. The panel and its cursor stand down. */
@@ -442,6 +494,7 @@ blockquote p{color:var(--text);margin:0;font-size:15.5px;max-width:none}
            arriving from a link should see whose product this is before they are sold on it, and
            it is also what a JS-disabled visitor keeps. -->
       <div class="hstate on" id="h-mark">
+        <div class="applogo"><img src="media/mark-nobg.webp" alt="" width="96" height="96"></div>
         <div class="wordmark">CREW<i>CHIEF</i></div>
         <div class="tagline">Your ground crew for <b>DCS World</b>.</div>
         <div class="subline">It gets your PC ready before you fly, and puts everything back
@@ -601,22 +654,22 @@ blockquote p{color:var(--text);margin:0;font-size:15.5px;max-width:none}
        they are options, not something that happens to you.</p>
     <div class="grid2">
       <div class="f-card"><span class="k">empty VR hangar</span>
-        <p>Open the F10 map in VR and DCS loads a full 3D hangar behind it, every single time, as
-           a backdrop you never look at. It has done this for years. This swaps it for an empty
-           scene, so the map opens faster and stops costing you frames for scenery nobody
-           sees.</p></div>
+        <p><b>The F10 map stops loading a 3D hangar you never look at.</b> DCS has drawn one
+           behind the map every single time, for years. This swaps it for an empty scene, so the
+           map opens faster and stops costing you frames for scenery nobody sees.</p></div>
       <div class="f-card"><span class="k">bigger UI text</span>
-        <p>DCS menu and radio text is small, and in a headset it can be genuinely hard to read.
-           This bumps the sizes on the message panels and the radio menu.</p></div>
+        <p><b>Menu and radio text you can actually read in a headset.</b> DCS draws both small,
+           and in VR it can be genuinely hard to make out. This bumps the sizes on the message
+           panels and the radio menu.</p></div>
       <div class="f-card"><span class="k">SharkPlanner</span>
-        <p>A VR-friendly way to enter waypoints and targets without leaning forward and pecking at
-           a cockpit keypad. You get a window you can click, and it types the coordinates into the
-           aircraft for you. Crew Chief keeps it updated for you.</p>
+        <p><b>Enter waypoints without leaning forward and pecking at a cockpit keypad.</b> You get
+           a window you can click, and it types the coordinates into the aircraft for you. Crew
+           Chief keeps it updated for you.</p>
         <p style="margin-top:10px">Open it in-game with
            <span class="kbd">Ctrl</span><span class="kbd">Shift</span><span class="kbd">Space</span></p></div>
       <div class="f-card"><span class="k">DLSS files</span>
-        <p>Crew Chief can keep DCS on a newer DLSS library than the one it ships with, which is
-           usually sharper in VR. Off by default — turn it on if you want it.</p></div>
+        <p><b>A newer DLSS library than the one DCS ships with.</b> Usually sharper in VR. Off by
+           default — turn it on if you want it.</p></div>
     </div>
     <p class="hint">None of these touch core DCS files. They live in your Saved Games folder, where
        user mods are meant to go, and they are safe for multiplayer.</p>
@@ -676,17 +729,17 @@ blockquote p{color:var(--text);margin:0;font-size:15.5px;max-width:none}
        tray icon and another settings file to remember.</p>
     <div class="grid2">
       <div class="f-card"><span class="k">more side-chains</span>
-        <p>TrackIR, tracker calibration, button box profiles, per-aircraft Nvidia settings.
-           Anything that currently lives in a text file and your memory.</p></div>
+        <p><b>Anything that currently lives in a text file and your memory.</b> TrackIR, tracker
+           calibration, button box profiles, per-aircraft Nvidia settings.</p></div>
       <div class="f-card"><span class="k">crash diagnosis</span>
-        <p>The crash folder already keeps the log, your hardware and what was running. Next is
-           reading it for you: known problems, mods that clash, "third time this month and it's
-           always the same one".</p></div>
+        <p><b>Next is reading the crash folder for you.</b> It already keeps the log, your
+           hardware and what was running — the step after that is known problems, mods that
+           clash, "third time this month and it's always the same one".</p></div>
       <div class="f-card"><span class="k">performance you can see</span>
-        <p>Frame data next to what was running at the time, so "it stutters sometimes" becomes
-           something you can point at.</p></div>
+        <p><b>Frame data next to what was running at the time.</b> So "it stutters sometimes"
+           becomes something you can point at.</p></div>
       <div class="f-card"><span class="k">profiles</span>
-        <p>A heavy VR campaign setup and a quick 2D multiplayer session aren't the same thing, and
+        <p><b>A heavy VR campaign and a quick 2D session aren't the same setup.</b> They
            shouldn't need the same list of apps closed.</p></div>
     </div>
     <blockquote>
@@ -713,12 +766,45 @@ blockquote p{color:var(--text);margin:0;font-size:15.5px;max-width:none}
     </div>
   </section>
 
+  <section class="socials">
+    <h2>Socials</h2>
+    <p>Crew Chief is one of the things Nullset Forge builds — alongside sim, FPV and handheld
+       gear. <b>Stay in the loop on what we are building next.</b></p>
+    <!-- Icons are inline SVG paths, not an icon font or a CDN: this page has no dependencies by
+         design and a webfont request is exactly the kind of thing that breaks it offline. -->
+    <div class="slinks">
+      <a class="slink" href="https://www.instagram.com/nullsetforge" target="_blank"
+         rel="noopener" title="Instagram" aria-label="Instagram">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.2c3.2 0 3.6 0 4.9.1 1.2.1 1.8.2 2.2.4.6.2 1 .5 1.4.9.4.4.7.8.9 1.4.2.4.4 1 .4 2.2.1 1.3.1 1.7.1 4.9s0 3.6-.1 4.9c0 1.2-.2 1.8-.4 2.2-.2.6-.5 1-.9 1.4-.4.4-.8.7-1.4.9-.4.2-1 .4-2.2.4-1.3.1-1.7.1-4.9.1s-3.6 0-4.9-.1c-1.2 0-1.8-.2-2.2-.4-.6-.2-1-.5-1.4-.9-.4-.4-.7-.8-.9-1.4-.2-.4-.4-1-.4-2.2C2.2 15.6 2.2 15.2 2.2 12s0-3.6.1-4.9c0-1.2.2-1.8.4-2.2.2-.6.5-1 .9-1.4.4-.4.8-.7 1.4-.9.4-.2 1-.4 2.2-.4 1.3-.1 1.7-.1 4.8-.1zm0 3.2A6.6 6.6 0 1 0 18.6 12 6.6 6.6 0 0 0 12 5.4zm0 10.9A4.3 4.3 0 1 1 16.3 12 4.3 4.3 0 0 1 12 16.3zM18.9 3.6a1.55 1.55 0 1 0 1.55 1.55A1.55 1.55 0 0 0 18.9 3.6z"/></svg>
+      </a>
+      <a class="slink" href="https://www.youtube.com/@NullsetForge" target="_blank"
+         rel="noopener" title="YouTube — Nullset Forge" aria-label="YouTube, Nullset Forge">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M23 7.5a3 3 0 0 0-2.1-2.1C19 4.8 12 4.8 12 4.8s-7 0-8.9.6A3 3 0 0 0 1 7.5 31 31 0 0 0 .5 12 31 31 0 0 0 1 16.5a3 3 0 0 0 2.1 2.1c1.9.6 8.9.6 8.9.6s7 0 8.9-.6a3 3 0 0 0 2.1-2.1A31 31 0 0 0 23.5 12 31 31 0 0 0 23 7.5zM9.8 15.3V8.7l5.8 3.3z"/></svg>
+      </a>
+      <a class="slink" href="https://www.youtube.com/@TAGE_FPV" target="_blank"
+         rel="noopener" title="YouTube — TAGE FPV" aria-label="YouTube, TAGE FPV">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M23 7.5a3 3 0 0 0-2.1-2.1C19 4.8 12 4.8 12 4.8s-7 0-8.9.6A3 3 0 0 0 1 7.5 31 31 0 0 0 .5 12 31 31 0 0 0 1 16.5a3 3 0 0 0 2.1 2.1c1.9.6 8.9.6 8.9.6s7 0 8.9-.6a3 3 0 0 0 2.1-2.1A31 31 0 0 0 23.5 12 31 31 0 0 0 23 7.5zM9.8 15.3V8.7l5.8 3.3z"/></svg>
+      </a>
+      <a class="slink" href="https://nullsetforge.etsy.com" target="_blank"
+         rel="noopener" title="Etsy" aria-label="Etsy"><span class="glyph">E</span></a>
+      <a class="slink" href="https://github.com/NullsetForge/" target="_blank"
+         rel="noopener" title="GitHub" aria-label="GitHub">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 .3a12 12 0 0 0-3.8 23.4c.6.1.8-.3.8-.6v-2c-3.3.7-4-1.6-4-1.6-.6-1.4-1.4-1.8-1.4-1.8-1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.8 1.3 3.5 1 .1-.8.4-1.3.7-1.6-2.7-.3-5.5-1.3-5.5-5.9 0-1.3.5-2.4 1.2-3.2 0-.4-.5-1.6.1-3.2 0 0 1-.3 3.3 1.2a11.5 11.5 0 0 1 6 0c2.3-1.5 3.3-1.2 3.3-1.2.6 1.6.2 2.8.1 3.2.8.8 1.2 1.9 1.2 3.2 0 4.6-2.8 5.6-5.5 5.9.4.4.8 1.1.8 2.2v3.3c0 .3.2.7.8.6A12 12 0 0 0 12 .3"/></svg>
+      </a>
+      <a class="slink" href="mailto:info@nullsetforge.com"
+         title="info@nullsetforge.com" aria-label="Email Nullset Forge">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 5.5A1.5 1.5 0 0 1 3.5 4h17A1.5 1.5 0 0 1 22 5.5v.4l-10 5.7-10-5.7zM2 8.2l9.5 5.4a1 1 0 0 0 1 0L22 8.2v10.3a1.5 1.5 0 0 1-1.5 1.5h-17A1.5 1.5 0 0 1 2 18.5z"/></svg>
+      </a>
+    </div>
+  </section>
+
   <footer class="foot">
-    <img class="footmark" src="media/mark.webp" alt="Crew Chief" width="132" height="132">
     <div class="footwm">CREW<i>CHIEF</i></div>
     <div class="footby">A <b>Nullset Forge</b> project &nbsp;·&nbsp;
       <a href="https://nullsetforge.com" target="_blank" rel="noopener">nullsetforge.com</a></div>
     <div class="footfine">Not affiliated with Eagle Dynamics</div>
+    <p class="foottag">For us the stars are wasting away because we will never reach them…</p>
+    <div class="footcopy">© 2026 Nullset Forge. All rights reserved.</div>
   </footer>
 </div>
 
