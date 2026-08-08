@@ -3,164 +3,421 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Crew Chief — Threat Board</title>
+<title>Crew Chief</title>
 <!--
-  A Carrd EMBED. Drop this in with an <iframe>; do not paste it inline.
+  The Carrd embed: four cards in one frame, advancing on their own every 3 seconds.
+  Drop it in with an <iframe>; do not paste it inline.
 
-  An iframe is the right call here even though Carrd accepts raw HTML: it isolates these styles
-  from the site's, it can be updated by pushing to this repo without touching the Carrd project,
-  and it cannot break the page layout if something here changes.
+  ONE frame rather than four embeds, because a Carrd section has one slot and four stacked
+  widgets would be four things to size, place and maintain. Each card answers one question:
 
-  TRANSPARENT BACKGROUND on purpose - the card behind it shows through, so this reads as part of
-  the site rather than a rectangle pasted onto it.
+    1. THE BOARD     - what it sees, and what it will do about it
+    2. THE SEQUENCE  - what actually happens when you press launch
+    3. THE RESTORE   - what it puts back, and why an interruption is survivable
+    4. THE DOSSIER   - what you are left holding on the bad day
 
-  It shows the THREAT BOARD because that is the one screen that demonstrates the product instead
-  of describing it. The card copy above it already explains the problem in words; this shows the
-  answer. It also animates the actual sequence - scan, then strike each contact off - which is
-  what the app really does, not a mockup of it.
+  Self-contained: no CDN, no build step, no fonts to fetch.
+
+  ================================================================================ I12
+  ⚠️ THIS IS NOW A 16:9 POSTER, AND THAT CHANGES THE EMBED CONTRACT.
+
+  The art is drawn 16:9. Sized by its copy, the shortest card cropped it to a thin letterbox band
+  and the composition was unreadable — so the card is locked to 16:9 and the COPY was cut to fit
+  it, rather than the frame stretching to fit the copy.
+
+  Locking the aspect makes height a function of WIDTH, and the host controls the width. Fixed
+  pixel iframe heights therefore cannot work any more: within a single breakpoint band the host
+  column varies continuously, and so does a 16:9 height. The three measured heights this file used
+  to carry (236/300/388, paired with 300/365/455 in docs/site-copy.md) are GONE, and so is the
+  non-monotonic rewrap table that went with them — there is nothing left to clip, because nothing
+  is allowed to overflow a fixed box any more.
+
+  The host now needs ONE line instead of three breakpoints:
+      .cc-board{width:100%;aspect-ratio:16/9;height:auto;border:0;display:block}
+  See docs/site-copy.md §3, which has been updated to match. ⚠️ If you ever put a fixed pixel
+  height back on that iframe, this card will letterbox or clip inside it.
+
+  BAR AND FOOT ARE OVERLAID, not stacked. They used to take layout height, which is fixed px and
+  therefore not expressible as a ratio — with them in flow, no single aspect-ratio can describe the
+  frame at every width. Floating them over the art is what makes the whole embed exactly 16:9.
+
+  TYPE SCALES WITH THE CARD (cqw), because a poster's composition has to hold at any size: at a
+  fixed 16:9, a 320px-wide card is only 180px tall, and anything sized in fixed px either overflows
+  it or leaves the 760px version looking empty. px values are declared FIRST as the fallback, so a
+  browser without container queries still gets a sane fixed size rather than nothing.
+
+  ART TREATMENT — same doctrine as the console's log panel:
+    · art is a PANEL treatment, clipped to the card, never a page background
+    · CRT stack over it: scanline tile, bloom, vignette
+    · WITH tint, unlike docs/how-crewchief-works.html. That page is a showcase where the art is
+      the point; this embed should look like the console, so the palette washes over it.
 -->
 <style>
 :root{
-  --card:#3B364E; --well:#221F30; --border:#4A4463;
-  --accent:#5F47D7; --text:#FFFFFF; --muted:#C4BDE7; --dim:#8E86AD;
-  --green:#55A049; --amber:#FFC107; --red:#D32F2F; --cyan:#67B6BD;
-  --ui:system-ui,"Segoe UI",Roboto,sans-serif;
+  --bg:#241B3D; --surface:#2E2450; --card:#362B5E; --well:#1A1330; --border:#4C3E82;
+  --accent:#8B6CFF; --glow:#A78BFA; --accent-2:#B47EFF;
+  --text:#F5F2FF; --muted:#C9BEEA; --dim:#9186BC;
+  --green:#5FB556; --amber:#E0A32E; --red:#E05252; --cyan:#5FBECB;
+  --ui:"Segoe UI",system-ui,Roboto,sans-serif;
   --mono:"Cascadia Mono",Consolas,ui-monospace,monospace;
+  --scan:url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAFCAYAAACEhIafAAAAH0lEQVR42gXBMREAAAgEIO4d3Z3MYv9YAmzQwQVTyAMGrgCHbcFNNgAAAABJRU5ErkJggg==");
+
+  /* THE GRADIENT SYSTEM, copied verbatim from Resources/theme.css so this embed and the app look
+     like one product. ⚠️ A DUPLICATE, because the embed is standalone by contract — retune the
+     palette in theme.css and you have to come back here too. */
+  --grad-bar:   linear-gradient(180deg,
+                  color-mix(in srgb, var(--accent) 9%, var(--surface)) 0%,
+                  color-mix(in srgb, #000 8%, var(--surface)) 100%);
+  --grad-card:  linear-gradient(162deg,
+                  color-mix(in srgb, var(--accent) 8%, var(--card)) 0%,
+                  var(--card) 52%,
+                  color-mix(in srgb, #000 7%, var(--card)) 100%);
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{background:transparent}
 body{font:13px/1.5 var(--ui);color:var(--text);-webkit-font-smoothing:antialiased;
-     display:flex;align-items:center;justify-content:center;padding:2px}
+     display:flex;align-items:center;justify-content:center}
 
-.win{width:100%;max-width:760px;background:var(--card);border:1px solid var(--border);
+/* THE POSTER. aspect-ratio here is the whole contract — see the header. `container-type:inline-size`
+   is what makes cqw mean "percent of this card's width" further down. */
+.win{width:100%;max-width:760px;aspect-ratio:16/9;position:relative;isolation:isolate;
+     container-type:inline-size;
+     background-color:var(--card);background-image:var(--grad-card,none);
+     border:1px solid var(--border);
      border-radius:11px;overflow:hidden;box-shadow:0 14px 34px -18px rgba(0,0,0,.85)}
 
-.bar{display:flex;align-items:center;gap:9px;padding:8px 12px;background:var(--well);
-     border-bottom:1px solid var(--border)}
-.dot{width:8px;height:8px;border-radius:50%;background:var(--dim);flex-shrink:0;
-     transition:background .3s}
-.bar.live .dot{background:var(--amber)}
-.bar.done .dot{background:var(--green)}
-.ttl{font:700 10px/1 var(--ui);letter-spacing:1.6px;text-transform:uppercase;color:var(--muted)}
-.count{margin-left:auto;font:600 10px/1 var(--mono);color:var(--dim)}
+/* ---------------------------------------------------------------- the deck */
+/* A TRACK that slides side to side, not a crossfade. The cards are laid out in a row and the whole
+   row is translated, so a card physically leaves as the next arrives — the movement tells you
+   there is more to the left and right, which a fade cannot. */
+.deck{position:absolute;inset:0;overflow:hidden}
+.track{display:flex;height:100%;width:100%;
+       transition:transform .5s cubic-bezier(.4,0,.2,1);will-change:transform}
+.slide{flex:0 0 100%;width:100%;height:100%;position:relative;overflow:hidden}
 
-.rows{padding:4px 0}
-.row{display:grid;grid-template-columns:1fr 96px 150px;gap:12px;align-items:center;
-     padding:7px 13px;font:12px/1.4 var(--mono);
-     opacity:0;transform:translateY(-4px);transition:opacity .32s ease,transform .32s ease}
-.row.in{opacity:1;transform:none}
-.nm{color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.pill{font:700 8px/1.85 var(--ui);letter-spacing:.7px;text-transform:uppercase;border-radius:99px;
-      padding:0 8px;text-align:center;border:1px solid currentColor;white-space:nowrap}
-.h{color:var(--red)} .p{color:var(--amber)} .c{color:var(--cyan)} .f{color:var(--green)}
-.fate{color:var(--dim);text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-      transition:color .3s}
-.row.hit .nm{text-decoration:line-through;color:var(--dim)}
-.row.hit .fate{color:var(--green)}
+/* --- the art layer, clipped to the card, exactly like the console log panel --- */
+.art{position:absolute;inset:0;z-index:1;background-size:cover;background-position:center;
+     filter:saturate(.72) brightness(.94) contrast(1.04)}
+/* ⚠️ WITH a tint, unlike the explainer page. This embed is meant to read as the console. */
+.tint{position:absolute;inset:0;z-index:2;background:var(--accent);
+      mix-blend-mode:soft-light;opacity:.45}
+.floor{position:absolute;inset:0;z-index:3;background:var(--well);opacity:.52}
+.scan{position:absolute;inset:0;z-index:4;background-image:var(--scan);
+      background-repeat:repeat;background-size:1px 5px;image-rendering:pixelated}
+.bloom{position:absolute;inset:0;z-index:5;opacity:.55;
+       background:radial-gradient(ellipse at 50% 40%,
+         color-mix(in srgb, var(--accent) 22%, transparent) 0%, transparent 62%)}
+.vig{position:absolute;inset:0;z-index:6;
+     background:radial-gradient(ellipse at 50% 45%, transparent 38%, rgba(6,4,12,.86) 100%)}
 
-.foot{padding:7px 13px;border-top:1px solid var(--border);background:var(--well);
-      font:10px/1.4 var(--ui);color:var(--dim);text-align:center}
+/* --- the copy, centred in the band left clear by the overlaid bar and foot --- */
+/* The vertical padding is what keeps text off the chrome: 7.4cqw clears the bar, 7cqw the foot.
+   Both are expressed in cqw for the same reason the type is — at 16:9 the chrome scales too. */
+/* ⚠️ EVERY SIZE HAS A PX FLOOR VIA max(). Pure cqw scaling "fits" at every width and is a lie:
+   at 320px the card is 180px tall and proportional type lands at 9px headings over 5px body —
+   which passes a height check and cannot be read. The floor is what makes the fit meaningful, and
+   it is why the container queries at the bottom shed content: once type stops shrinking, the only
+   thing left to give is words. */
+.body{position:absolute;inset:0;z-index:7;
+      padding:max(26px,7.4cqw) max(14px,4.2cqw) max(24px,7cqw);
+      display:flex;flex-direction:column;justify-content:center;
+      text-shadow:0 1px 3px rgba(0,0,0,.95),0 0 14px rgba(0,0,0,.7)}
+.kicker{font:600 10px/1 var(--ui);font-size:max(8.5px,1.32cqw);letter-spacing:.22cqw;
+        text-transform:uppercase;color:var(--glow);margin-bottom:1.3cqw}
+h4{font:700 21px/1.18 var(--ui);font-size:max(15px,2.85cqw);letter-spacing:.2px;
+   margin-bottom:1.5cqw}
+h4 i{font-style:normal;color:var(--glow)}
+.lede{font-size:12.5px;font-size:max(11px,1.68cqw);color:var(--muted);margin-bottom:1.8cqw;
+      max-width:56ch}
+.small{font-size:11.5px;font-size:max(10.5px,1.5cqw);color:var(--dim)}
 
-@media(max-width:560px){
-  .row{grid-template-columns:1fr 84px;gap:8px;font-size:11px}
-  .fate{display:none}
+/* ---- contact rows: cards 1 and 3 ---- */
+.rows{display:grid;gap:max(3px,.8cqw)}
+.row{display:flex;align-items:center;gap:1.4cqw;padding:max(4px,1cqw) max(7px,1.6cqw);
+     border-radius:1cqw;font-size:12px;font-size:max(11px,1.62cqw);
+     background:color-mix(in srgb, var(--well) 62%, transparent);
+     border:1px solid color-mix(in srgb, var(--border) 70%, transparent)}
+.dot2{width:max(5px,1.05cqw);height:max(5px,1.05cqw);border-radius:99px;flex-shrink:0}
+.nm{font-weight:600;min-width:19cqw}
+.vb{font:700 11px/1 var(--ui);font-size:max(9px,1.42cqw);letter-spacing:.9px;
+    text-transform:uppercase;min-width:10cqw}
+.ft{margin-left:auto;font-size:max(10px,1.5cqw);color:var(--dim)}
+.hostile .dot2{background:var(--red)} .hostile .vb{color:var(--red)}
+.friendly .dot2{background:var(--green)} .friendly .vb{color:var(--green)}
+.cold .dot2{background:var(--dim)} .cold .vb{color:var(--dim)}
+.gone{text-decoration:line-through;opacity:.55}
+
+/* ---- the sequence: card 2 ---- */
+.steps{display:grid;gap:max(3px,1.05cqw)}
+/* ⚠️ line-height 1.3, not the body's 1.5. Six rows multiply it: at the 11px floor that inherited
+   paragraph leading cost 16px over the list, which was exactly the margin by which card 2 — the
+   only six-item card — overflowed a 320px-wide 16:9 box. Leading tuned for prose is wrong for a
+   list of one-liners anyway. */
+.st{display:flex;gap:max(6px,1.4cqw);align-items:flex-start;font-size:12px;
+    font-size:max(11px,1.6cqw);line-height:1.3;color:var(--muted)}
+.st i{flex-shrink:0;width:max(14px,2.7cqw);height:max(14px,2.7cqw);border-radius:.8cqw;
+      font-style:normal;background:color-mix(in srgb, var(--accent) 30%, transparent);
+      border:1px solid var(--accent);color:var(--text);
+      font:700 11px/1 var(--ui);font-size:max(8.5px,1.4cqw);
+      display:flex;align-items:center;justify-content:center}
+.st b{color:var(--text)}
+
+/* ---- the dossier: card 4 ---- */
+.kv{display:flex;gap:max(10px,2.4cqw);flex-wrap:wrap;margin-bottom:1.8cqw;
+    padding:max(5px,1.2cqw) max(7px,1.5cqw);
+    background:color-mix(in srgb, var(--well) 70%, transparent);
+    border:1px solid color-mix(in srgb, var(--border) 70%, transparent);border-radius:1cqw}
+.kv div{font:9px/1 var(--ui);font-size:max(8px,1.18cqw);letter-spacing:.7px;
+        text-transform:uppercase;color:var(--dim)}
+.kv b{display:block;font:600 12px/1.4 var(--mono);font-size:max(10px,1.6cqw);color:var(--text);
+      letter-spacing:0;text-transform:none;margin-top:.5cqw}
+
+/* ---------------------------------------------------------------- overlaid chrome */
+/* Both float ON the art. See the header: in flow they were fixed px, which is exactly what stopped
+   the frame being expressible as a single ratio. */
+.bar{position:absolute;z-index:9;top:0;left:0;right:0;
+     display:flex;align-items:center;gap:max(5px,1.2cqw);padding:max(6px,1.5cqw) max(8px,1.9cqw);
+     background:linear-gradient(180deg, rgba(8,6,16,.82), transparent);
+     text-shadow:0 1px 3px rgba(0,0,0,.9)}
+.dot{width:max(5px,1.05cqw);height:max(5px,1.05cqw);border-radius:50%;background:var(--dim);
+     transition:background .35s}
+.bar.run .dot{background:var(--amber)}
+.bar.ok  .dot{background:var(--green)}
+.bar.bad .dot{background:var(--red)}
+.ttl{font:700 10px/1 var(--ui);font-size:max(9px,1.3cqw);letter-spacing:.21cqw;
+     text-transform:uppercase;color:var(--muted)}
+.sub{margin-left:auto;font:600 10px/1 var(--mono);font-size:max(9px,1.3cqw);color:var(--dim)}
+
+.foot{position:absolute;z-index:9;bottom:0;left:0;right:0;
+      display:flex;align-items:center;gap:max(5px,1.2cqw);padding:max(6px,1.5cqw) max(8px,1.9cqw);
+      background:linear-gradient(0deg, rgba(8,6,16,.82), transparent);
+      text-shadow:0 1px 3px rgba(0,0,0,.9)}
+.dots{display:flex;gap:max(4px,.8cqw)}
+.pip{width:max(11px,2.1cqw);height:max(3px,.4cqw);border-radius:99px;
+     background:color-mix(in srgb,var(--muted) 45%,transparent);
+     cursor:pointer;transition:background .3s,width .3s}
+.pip.on{background:var(--glow);width:max(18px,3.4cqw)}
+.tag{margin-left:auto;font:10px/1.4 var(--ui);font-size:max(9px,1.3cqw);color:var(--muted)}
+
+/* ⚠️ .track, NOT .slide. .slide has never had a transition — the sliding element is .track (see
+   its transform transition above), and the dot and pips animate too. Targeting .slide here was a
+   silent no-op for the whole life of this file: reduced-motion users still got the full 500ms
+   horizontal slide whenever they clicked a pip. The auto-advance was correctly suppressed in
+   restart(), so only half the promise was being kept. */
+@media(prefers-reduced-motion:reduce){ .track,.dot,.pip{transition:none} }
+
+/* ⚠️ THESE TIERS SHED WORDS, NOT HEIGHT — the aspect is locked, so height is not negotiable.
+   Once the px floors above stop the type shrinking, a narrower card has strictly less room, and
+   the only remaining variable is how much is said. Each tier drops the least load-bearing thing
+   still present, so what survives stays readable rather than everything becoming unreadable
+   together. Measured fit at every step; see the I12 notes in BACKLOG.md.
+
+   ⚠️ ORDER OF SACRIFICE, most droppable first:
+     .ft    the trailing fate text  — the verdict pill already carries the meaning
+     .small the footnote            — an aside by definition
+     .lede  the paragraph           — the rows and the kv strip restate it structurally
+     .st .d the step descriptions   — six NAMED steps still says "it runs the same way every time"
+     .kicker                        — the h4 underneath it says the same thing louder */
+@container (max-width: 560px){
+  .ft{display:none}
+  .nm{min-width:0}
+  .small{display:none}
 }
-@media(prefers-reduced-motion:reduce){
-  .row{transition:none}
+@container (max-width: 430px){
+  .lede{display:none}
+  .st .d{display:none}
+}
+@container (max-width: 360px){
+  .kicker{display:none}
 }
 </style>
 </head>
 <body>
 
-<div class="win">
+<div class="win" id="win">
+
+  <div class="deck" id="deck">
+   <div class="track" id="track">
+
+    <!-- 1 — THE BOARD -->
+    <div class="slide" data-art="CRAM">
+      <div class="art"></div><div class="tint"></div><div class="floor"></div>
+      <div class="scan"></div><div class="bloom"></div><div class="vig"></div>
+      <div class="body">
+        <div class="kicker">The board</div>
+        <h4>It shows you the <i>whole deck</i> first</h4>
+        <p class="lede">Crew Chief scans and tells you what it found and what it intends to do.
+          Nothing is closed until you press launch.</p>
+        <div class="rows">
+          <div class="row hostile"><span class="dot2"></span><span class="nm">RTSS</span>
+            <span class="vb">Hostile</span><span class="ft">will be closed</span></div>
+          <div class="row hostile"><span class="dot2"></span><span class="nm">Discord</span>
+            <span class="vb">Hostile</span><span class="ft">overlay stowed</span></div>
+          <div class="row cold"><span class="dot2"></span><span class="nm">SRS Radio</span>
+            <span class="vb">Cold</span><span class="ft">launches at step 4</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2 — THE SEQUENCE -->
+    <div class="slide" data-art="takeoff">
+      <div class="art"></div><div class="tint"></div><div class="floor"></div>
+      <div class="scan"></div><div class="bloom"></div><div class="vig"></div>
+      <div class="body">
+        <div class="kicker">Six steps</div>
+        <h4>Every sortie runs the <i>same way</i></h4>
+        <div class="steps">
+          <div class="st"><i>1</i><span><b>C-RAM Scan.</b><span class="d"> Closes the overlays that fight DCS.</span></span></div>
+          <div class="st"><i>2</i><span><b>Flight Systems Check.</b><span class="d"> Headset, drivers, DLSS, mods.</span></span></div>
+          <div class="st"><i>3</i><span><b>SEAD Strike.</b><span class="d"> Steam's overlay file, Discord's hook.</span></span></div>
+          <div class="st"><i>4</i><span><b>Catapult Prep.</b><span class="d"> Starts what you do want, in order.</span></span></div>
+          <div class="st"><i>5</i><span><b>AWACS Active.</b><span class="d"> DCS runs. It goes quiet and watches.</span></span></div>
+          <div class="st"><i>6</i><span><b>Debriefing &amp; RTB.</b><span class="d"> Everything from step 1 comes back.</span></span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3 — THE RESTORE -->
+    <div class="slide" data-art="landing">
+      <div class="art"></div><div class="tint"></div><div class="floor"></div>
+      <div class="scan"></div><div class="bloom"></div><div class="vig"></div>
+      <div class="body">
+        <div class="kicker">Afterwards</div>
+        <h4>It writes down <i>everything</i> it changes</h4>
+        <p class="lede">Written to your drive before it acts, so an interrupted sortie is a delay
+          rather than a mess — the next launch finishes the cleanup first.</p>
+        <div class="rows">
+          <div class="row friendly"><span class="dot2"></span><span class="nm">RTSS</span>
+            <span class="vb">Restored</span><span class="ft">running again</span></div>
+          <div class="row friendly"><span class="dot2"></span><span class="nm">Discord</span>
+            <span class="vb">Restored</span><span class="ft">overlay back</span></div>
+          <div class="row friendly"><span class="dot2"></span><span class="nm">HDR</span>
+            <span class="vb">Restored</span><span class="ft">as you had it</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4 — THE DOSSIER -->
+    <div class="slide" data-art="crash">
+      <div class="art"></div><div class="tint"></div><div class="floor"></div>
+      <div class="scan"></div><div class="bloom"></div><div class="vig"></div>
+      <div class="body">
+        <div class="kicker">Crash dossier</div>
+        <h4>The bad day, <i>already documented</i></h4>
+        <div class="kv">
+          <div>GPU<b>RTX 4090 · 566.36</b></div>
+          <div>VR<b>Varjo Aero</b></div>
+          <div>DCS<b>2.9 · Standalone</b></div>
+          <div>Log<b>dcs.log captured</b></div>
+        </div>
+        <p class="lede">One folder per crash, so a new one never wipes out the last one's
+          evidence.</p>
+        <p class="small">Drop it into Gemini or Claude and start from facts instead of "it crashed
+          again".</p>
+      </div>
+    </div>
+
+   </div>
+  </div>
+
   <div class="bar" id="bar">
     <span class="dot"></span>
-    <span class="ttl">Threat Board</span>
-    <span class="count" id="count">scanning…</span>
+    <span class="ttl" id="bttl">Threat Board</span>
+    <span class="sub" id="bsub">3 contacts</span>
   </div>
-  <div class="rows" id="rows"></div>
-  <div class="foot">It only looks. Nothing is closed until you press launch.</div>
+
+  <div class="foot">
+    <div class="dots" id="dots"></div>
+    <span class="tag" id="tag">It looks before it acts</span>
+  </div>
 </div>
 
 <script>
-/* Real contacts, real verdicts, real outcomes - lifted from the app rather than invented, so
-   what a visitor sees here is what they get when they run it. */
-var ROWS = [
-  { nm:'RTSS',            cls:'h', verdict:'hostile',   fate:'closed at step 1',       hit:'closed'   },
-  { nm:'Discord',         cls:'h', verdict:'hostile',   fate:'overlay off, app stays', hit:'overlay off' },
-  { nm:'MSI Afterburner', cls:'p', verdict:'protected', fate:'overclocking, spared',   hit:null       },
-  { nm:'Steam overlay',   cls:'h', verdict:'hostile',   fate:'stowed at step 3',       hit:'stowed'   },
-  { nm:'SimpleRadio',     cls:'c', verdict:'cold',      fate:'started at step 4',      hit:'started'  },
-  { nm:'VarjoBase',       cls:'f', verdict:'friendly',  fate:'already running',        hit:null       }
-];
+var SLIDES = [].slice.call(document.querySelectorAll('.slide'));
 
-var rowsEl = document.getElementById('rows');
-var countEl = document.getElementById('count');
-var barEl = document.getElementById('bar');
+/* ⚠️ NAMES, NOT PATHS, and every one must be in PUBLISH in tools/web_art.py or the .webp will not
+   exist. tools/trim_web_art.py finds references by scanning this file for the bare quoted name,
+   so a piece referenced only by a variable it cannot see would be swept as unreferenced. */
+SLIDES.forEach(function(s){
+  s.querySelector('.art').style.backgroundImage = 'url("../media/' + s.dataset.art + '.webp")';
+});
+
+var META = [
+  // sub must match the number of .row entries in card 1. show(0) rewrites #bsub from here on every
+  // return to card 1, so the static markup above is not enough on its own — both have to agree.
+  { ttl:'Threat Board',  sub:'3 contacts', bar:'',    tag:'It looks before it acts' },
+  { ttl:'Launch',        sub:'six steps',  bar:'run', tag:'Same order, every time' },
+  { ttl:'Restore list',  sub:'on disk',    bar:'bad', tag:'Survives a crash' },
+  { ttl:'Crash dossier', sub:'captured',   bar:'ok',  tag:'Free · Windows' }
+];
+var dotsEl = document.getElementById('dots'),
+    bar = document.getElementById('bar'),
+    bttl = document.getElementById('bttl'),
+    bsub = document.getElementById('bsub'),
+    tag = document.getElementById('tag');
+var idx = 0, timer = 0, paused = false;
 var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-var els = ROWS.map(function (r) {
-  var d = document.createElement('div');
-  d.className = 'row';
-  d.innerHTML = '<span class="nm">' + r.nm + '</span>'
-              + '<span class="pill ' + r.cls + '">' + r.verdict + '</span>'
-              + '<span class="fate">' + r.fate + '</span>';
-  rowsEl.appendChild(d);
+var pips = SLIDES.map(function(_, i){
+  var d = document.createElement('span');
+  d.className = 'pip' + (i === 0 ? ' on' : '');
+  d.title = 'Card ' + (i + 1);
+  d.onclick = function(){ show(i); restart(); };
+  dotsEl.appendChild(d);
   return d;
 });
 
-/* setTimeout, not requestAnimationFrame. This runs in an iframe that is frequently scrolled out
-   of view or sitting in a background tab, and rAF is suspended there - the animation would
-   freeze half-finished and the visitor would see a partly-drawn board. */
-function run() {
-  els.forEach(function (el, i) {
-    setTimeout(function () {
-      el.classList.add('in');
-      var n = i + 1;
-      countEl.textContent = n + ' contact' + (n > 1 ? 's' : '');
-      if (n === ROWS.length) barEl.classList.add('live');
-    }, reduce ? 0 : 220 * i);
-  });
+var track = document.getElementById('track');
 
-  if (reduce) { settle(); return; }
-  setTimeout(settle, 220 * ROWS.length + 900);
+function show(i){
+  idx = (i + SLIDES.length) % SLIDES.length;
+  track.style.transform = 'translateX(' + (-idx * 100) + '%)';
+  pips.forEach(function(p, k){ p.classList.toggle('on', k === idx); });
+  var m = META[idx];
+  bttl.textContent = m.ttl; bsub.textContent = m.sub; tag.textContent = m.tag;
+  bar.className = 'bar' + (m.bar ? ' ' + m.bar : '');
 }
 
-function settle() {
-  var order = ROWS.map(function (r, i) { return r.hit ? i : -1; }).filter(function (i) { return i >= 0; });
-  order.forEach(function (idx, k) {
-    setTimeout(function () {
-      els[idx].classList.add('hit');
-      els[idx].querySelector('.fate').textContent = ROWS[idx].hit;
-      if (k === order.length - 1) {
-        barEl.classList.remove('live');
-        barEl.classList.add('done');
-        countEl.textContent = 'deck clear';
-      }
-    }, reduce ? 0 : 420 * k);
-  });
+/* setInterval, not requestAnimationFrame. This runs in an iframe that is routinely scrolled out
+   of view or parked in a background tab, where rAF is suspended - the carousel would stop dead
+   and a visitor returning to the tab would find it frozen on whichever card it stalled on. */
+function restart(){
+  clearInterval(timer);
+  if (reduce) return;                 // respect the preference: no automatic movement
+  timer = setInterval(function(){ if (!paused) show(idx + 1); }, 3000);
 }
 
-/* Start once it is actually on screen, so someone who scrolls down later sees the sequence from
-   the beginning instead of arriving at a finished board.
-   ⚠️ WITH A HARD FALLBACK. If the observer never fires - a browser that throttles it, an iframe
-   the parent has sized oddly, a page that never composites - the rows stay at opacity 0 and the
-   visitor sees an EMPTY BOX. An unstarted animation must fail to "shown" rather than "blank",
-   because blank looks broken and broken is worse than un-animated. */
-var started = false;
-function start() { if (started) return; started = true; run(); }
+/* Pause while the pointer is over it. Someone reading a card should not have it yanked away
+   mid-sentence, which is the single most irritating thing a carousel can do. */
+var win = document.getElementById('win');
+win.addEventListener('mouseenter', function(){ paused = true; });
+win.addEventListener('mouseleave', function(){ paused = false; });
 
-if ('IntersectionObserver' in window) {
+/* Start when it scrolls into view, WITH A HARD FALLBACK. If the observer never fires - throttled,
+   an oddly sized iframe, a page that never composites - the deck would sit on card one forever.
+   Un-animated is survivable; looking broken is not. */
+var started = false, fallback = 0;
+function start(){ if (started) return; started = true; clearTimeout(fallback); show(0); restart(); }
+if ('IntersectionObserver' in window){
   try {
-    var io = new IntersectionObserver(function (entries) {
-      entries.forEach(function (e) { if (e.isIntersecting) { io.disconnect(); start(); } });
-    }, { threshold: 0.25 });
-    io.observe(document.querySelector('.win'));
-  } catch (e) { start(); }
-  setTimeout(start, 1500);      // the fallback: never leave it blank
-} else {
-  start();
-}
+    var io = new IntersectionObserver(function(es){
+      /* ⚠️ STAND THE FALLBACK DOWN ON THE FIRST CALLBACK OF ANY KIND — including one reporting
+         isIntersecting:false. That first entry arrives within a frame or two and is proof the
+         observer is alive; waiting for isIntersecting instead means the fallback fires first on
+         every embed that is not already on screen, which is every real embed. */
+      clearTimeout(fallback);
+      es.forEach(function(e){ if (e.isIntersecting){ io.disconnect(); start(); } });
+    }, { threshold: 0.2 });
+    io.observe(win);
+    /* 8s, not the 1.5s this shipped with. 1.5s is shorter than any realistic scroll-to-section,
+       so the "wait until it scrolls into view" promise above held only when the deck was ALREADY
+       in view — the one case where it changes nothing. Measured on a below-the-fold embed held
+       at scrollY 0: the deck reached card 3 at ~11.7s having never been seen, so a visitor
+       scrolling down met it mid-sentence on an arbitrary card. This is now a genuine last resort
+       for an observer that never speaks at all. */
+    fallback = setTimeout(start, 8000);
+  } catch(e){ start(); }
+} else { start(); }
 </script>
 </body>
 </html>
