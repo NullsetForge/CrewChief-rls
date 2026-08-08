@@ -766,12 +766,15 @@ blockquote p{color:var(--text);margin:0;font-size:19px;max-width:none}
     <p>Windows, DCS World, VR or flat. No account, no telemetry, no launcher sitting in your tray
        asking for attention. Free, and it stays free.</p>
     <div class="dl">
-      <!-- /releases/latest, NOT a versioned URL. This page will outlive v50 and a hardcoded
-           version becomes a dead link the moment the next release lands.
-           ⚠️ Only works because the publisher marks bundle releases --latest=false. This depot puts
-           two channels in one repo, and GitHub picks "latest" by recency across all of them, so
-           without that flag a bundle published after an app would silently claim this link. -->
-      <a class="cta" href="https://github.com/NullsetForge/CrewChief-rls/releases/latest"
+      <!-- ⚠️ /releases, NOT /releases/latest — and this is temporary.
+           Never a hardcoded version: this page outlives any release number.
+           /releases/latest was correct while an app release existed, because the depot marks
+           bundle releases --latest=false. With the app releases cleared for the 0.99 renumber,
+           only bundle-v2 remains, and GitHub falls back to it as "latest" REGARDLESS of that flag
+           when it is the only release — so the download button silently offered the optimization
+           bundle in place of the app. Verified: /releases/latest resolved to tag/bundle-v2.
+           Put this back to /releases/latest as soon as an app release is published again. -->
+      <a class="cta" href="https://github.com/NullsetForge/CrewChief-rls/releases"
          target="_blank" rel="noopener">Download the latest release</a>
       <div class="dl-note">Windows 10 or 11 · needs the
         <a href="https://dotnet.microsoft.com/download/dotnet/8.0" target="_blank" rel="noopener">.NET 8 Desktop Runtime</a>
